@@ -34,15 +34,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         if (!isMounted) return;
         if (res?.user) {
           setUser(res.user);
-        } else if (user?.uid !== "guest-mode") {
-          setUser(null);
         }
       })
-      .catch(() => {
-        if (isMounted && user?.uid !== "guest-mode") {
-          setUser(null);
-        }
-      })
+      .catch(() => {})
       .finally(() => {
         if (isMounted) {
           setAuthLoading(false);

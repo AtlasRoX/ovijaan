@@ -13,6 +13,7 @@ export const apiClient = {
         const res = await fetch("/api/auth", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           cache: "no-store",
         });
         if (!res.ok) return { user: null, serverConfigured: false };
@@ -26,6 +27,7 @@ export const apiClient = {
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action: "login", email, password }),
       });
       const data = await res.json();
@@ -39,6 +41,7 @@ export const apiClient = {
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action: "signup", email, password, displayName }),
       });
       const data = await res.json();
@@ -52,6 +55,7 @@ export const apiClient = {
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action: "guest" }),
       });
       const data = await res.json();
@@ -65,6 +69,7 @@ export const apiClient = {
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action: "google" }),
       });
       const data = await res.json();
@@ -79,6 +84,7 @@ export const apiClient = {
         await fetch("/api/auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ action: "logout" }),
         });
       } catch (err) {
@@ -90,6 +96,7 @@ export const apiClient = {
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action: "reset-password", email }),
       });
       const data = await res.json();
@@ -102,6 +109,7 @@ export const apiClient = {
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action: "profile", displayName, preferredCurrency }),
       });
       const data = await res.json();
@@ -118,6 +126,7 @@ export const apiClient = {
         const res = await fetch("/api/sync", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           cache: "no-store",
         });
         if (!res.ok) return null;
@@ -133,6 +142,7 @@ export const apiClient = {
         await fetch("/api/sync", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ collection, id, data }),
         });
       } catch (err) {
@@ -142,9 +152,13 @@ export const apiClient = {
 
     async deleteDoc(collection: string, id: string): Promise<void> {
       try {
-        await fetch(`/api/sync?collection=${encodeURIComponent(collection)}&id=${encodeURIComponent(id)}`, {
-          method: "DELETE",
-        });
+        await fetch(
+          `/api/sync?collection=${encodeURIComponent(collection)}&id=${encodeURIComponent(id)}`,
+          {
+            method: "DELETE",
+            credentials: "include",
+          }
+        );
       } catch (err) {
         console.warn(`Sync delete failed for ${collection}/${id}:`, err);
       }
@@ -162,6 +176,7 @@ export const apiClient = {
 
       const res = await fetch("/api/files", {
         method: "POST",
+        credentials: "include",
         body: formData,
       });
 

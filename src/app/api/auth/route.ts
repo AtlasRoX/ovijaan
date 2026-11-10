@@ -40,7 +40,45 @@ export async function POST(req: NextRequest) {
 
       let user: UserProfile;
       if (isServerFirebaseConfigured) {
-        user = await serverSignInWithEmail(email, password);
+        try {
+          user = await serverSignInWithEmail(email, password);
+        } catch (loginErr: any) {
+          const errMsg = loginErr.message || "";
+          // If the account does not exist yet, automatically create and sign in!
+          if (
+            errMsg.includes("EMAIL_NOT_FOUND") ||
+            errMsg.includes("INVALID_LOGIN_CREDENTIALS")
+          ) {
+            try {
+              user = await serverSignUpWithEmail(
+                email,
+                password,
+                email.split("@")[0]
+              );
+            } catch (signupErr: any) {
+              if (signupErr.message?.includes("EMAIL_EXISTS")) {
+                return NextResponse.json(
+                  { error: "Incorrect password for this email address." },
+                  { status: 400 }
+                );
+              }
+              if (signupErr.message?.includes("WEAK_PASSWORD")) {
+                return NextResponse.json(
+                  { error: "Password must be at least 6 characters." },
+                  { status: 400 }
+                );
+              }
+              throw signupErr;
+            }
+          } else if (errMsg.includes("INVALID_PASSWORD")) {
+            return NextResponse.json(
+              { error: "Incorrect password for this email address." },
+              { status: 400 }
+            );
+          } else {
+            throw loginErr;
+          }
+        }
       } else {
         // Fallback local auth if keys are not present
         user = {
@@ -65,7 +103,28 @@ export async function POST(req: NextRequest) {
 
       let user: UserProfile;
       if (isServerFirebaseConfigured) {
-        user = await serverSignUpWithEmail(email, password, displayName);
+        try {
+          user = await serverSignUpWithEmail(email, password, displayName);
+        } catch (signupErr: any) {
+          if (signupErr.message?.includes("EMAIL_EXISTS")) {
+            // If already registered and password matches, sign them in seamlessly!
+            try {
+              user = await serverSignInWithEmail(email, password);
+            } catch (err) {
+              return NextResponse.json(
+                { error: "An account with this email already exists. Please switch to Sign In." },
+                { status: 400 }
+              );
+            }
+          } else if (signupErr.message?.includes("WEAK_PASSWORD")) {
+            return NextResponse.json(
+              { error: "Password must be at least 6 characters." },
+              { status: 400 }
+            );
+          } else {
+            throw signupErr;
+          }
+        }
       } else {
         user = {
           uid: `user-${Buffer.from(email).toString("base64url").slice(0, 12)}`,
