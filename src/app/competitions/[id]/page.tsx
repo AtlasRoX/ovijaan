@@ -31,7 +31,6 @@ import {
   getStatusBadgeClass,
 } from "@/lib/utils";
 import { CompetitionStatus, SubmissionStatus, ResultOutcome } from "@/types";
-import confetti from "canvas-confetti";
 
 export default function CompetitionDetailPage({
   params,
@@ -133,10 +132,13 @@ export default function CompetitionDetailPage({
   const nearestDeadline = comp.dates?.submissionDeadline || comp.dates?.registrationCloses;
   const relDeadline = getRelativeDeadline(nearestDeadline);
 
-  const handleStatusChange = (newStatus: CompetitionStatus) => {
+  const handleStatusChange = async (newStatus: CompetitionStatus) => {
     updateCompetition(comp.id, { status: newStatus });
     if (newStatus === "Winner") {
-      confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+      try {
+        const confetti = (await import("canvas-confetti")).default;
+        confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+      } catch {}
     }
   };
 
@@ -190,7 +192,10 @@ export default function CompetitionDetailPage({
     });
     if (resOutcome === "Winner") {
       updateCompetition(comp.id, { status: "Winner" });
-      confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } });
+      try {
+        const confetti = (await import("canvas-confetti")).default;
+        confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } });
+      } catch {}
     }
     alert("Result & outcome saved!");
   };

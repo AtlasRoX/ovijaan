@@ -23,7 +23,6 @@ import {
   formatCurrency,
   getStatusBadgeClass,
 } from "@/lib/utils";
-import confetti from "canvas-confetti";
 
 export default function DashboardPage() {
   const {
@@ -131,12 +130,18 @@ export default function DashboardPage() {
     return acc;
   }, {});
 
-  const handleCelebrate = () => {
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
+  const handleCelebrate = async () => {
+    try {
+      const confettiModule = await import("canvas-confetti");
+      const confetti = confettiModule.default || confettiModule;
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+    } catch (e) {
+      console.warn("Confetti error:", e);
+    }
   };
 
   return (

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Award, Trophy, Sparkles, ExternalLink, FileText, Calendar } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatCurrency } from "@/lib/utils";
-import confetti from "canvas-confetti";
 
 export default function AchievementsPage() {
   const { results, competitions } = useAppStore();
@@ -22,12 +21,18 @@ export default function AchievementsPage() {
     return acc;
   }, {});
 
-  const handleCelebrate = () => {
-    confetti({
-      particleCount: 100,
-      spread: 80,
-      origin: { y: 0.6 },
-    });
+  const handleCelebrate = async () => {
+    try {
+      const confettiModule = await import("canvas-confetti");
+      const confetti = confettiModule.default || confettiModule;
+      confetti({
+        particleCount: 100,
+        spread: 80,
+        origin: { y: 0.6 },
+      });
+    } catch (e) {
+      console.warn("Confetti error:", e);
+    }
   };
 
   return (
