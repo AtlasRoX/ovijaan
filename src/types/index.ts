@@ -264,4 +264,5 @@ export interface UserProfile {
   photoURL?: string | null;
   bio?: string;
   preferredCurrency?: string;
+  role?: string;
 }

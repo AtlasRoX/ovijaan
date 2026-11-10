@@ -9,16 +9,9 @@ import {
   CheckCircle2,
   ShieldCheck,
   User,
+  Server,
 } from "lucide-react";
-import {
-  getFirebaseAuth,
-  signInGoogle,
-  loginWithEmail,
-  registerWithEmail,
-  sendPasswordReset,
-  isFirebaseConfigured,
-} from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { apiClient } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -33,29 +26,31 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      setAuthLoading(false);
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Competitor",
-          photoURL: firebaseUser.photoURL,
-        });
-      } else {
-        if (user?.uid !== "guest-mode") {
+    let isMounted = true;
+    apiClient.auth
+      .getMe()
+      .then((res) => {
+        if (!isMounted) return;
+        if (res?.user) {
+          setUser(res.user);
+        } else if (user?.uid !== "guest-mode") {
           setUser(null);
         }
-      }
-      setAuthLoading(false);
-    });
+      })
+      .catch(() => {
+        if (isMounted && user?.uid !== "guest-mode") {
+          setUser(null);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setAuthLoading(false);
+        }
+      });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+    };
   }, [setUser, setAuthLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,88 +61,43 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
     try {
       if (tab === "login") {
-        const res = await loginWithEmail(email, password);
-        setUser({
-          uid: res.user.uid,
-          email: res.user.email,
-          displayName: res.user.displayName || email.split("@")[0],
-          photoURL: res.user.photoURL,
-        });
+        const loggedUser = await apiClient.auth.login(email, password);
+        setUser(loggedUser);
       } else if (tab === "signup") {
-        const res = await registerWithEmail(email, password);
-        setUser({
-          uid: res.user.uid,
-          email: res.user.email,
-          displayName: displayName.trim() || email.split("@")[0],
-          photoURL: null,
-        });
+        const newUser = await apiClient.auth.signup(email, password, displayName);
+        setUser(newUser);
       } else if (tab === "forgot") {
-        await sendPasswordReset(email);
+        await apiClient.auth.resetPassword(email);
         setSuccessMsg("Password reset email sent! Check your inbox.");
       }
     } catch (err: any) {
       console.error(err);
-      let msg = err.message || "Authentication error occurred.";
-      if (msg.includes("auth/invalid-credential") || msg.includes("auth/user-not-found")) {
-        msg = "Invalid email or password.";
-      } else if (msg.includes("auth/email-already-in-use")) {
-        msg = "Account already exists with this email.";
-      } else if (msg.includes("auth/weak-password")) {
-        msg = "Password should be at least 6 characters.";
-      }
-      setError(msg);
+      setError(err.message || "Authentication error occurred.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setError(null);
-    setSuccessMsg(null);
+  const handleGuestAccess = async () => {
     setSubmitting(true);
     try {
-      const res = await signInGoogle();
-      setUser({
-        uid: res.user.uid,
-        email: res.user.email,
-        displayName: res.user.displayName || "Obhijaan Competitor",
-        photoURL: res.user.photoURL,
-      });
+      const guest = await apiClient.auth.guestLogin();
+      setUser(guest);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message?.replace("Firebase: ", "") || "Google sign-in was cancelled.");
+      setUser({
+        uid: "guest-mode",
+        email: "guest@obhijaan.local",
+        displayName: "Guest Competitor",
+        role: "guest",
+      });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleGuestAccess = () => {
-    setUser({
-      uid: "guest-mode",
-      email: "guest@obhijaan.local",
-      displayName: "Guest Competitor",
-    });
+  const handleGoogleLogin = () => {
+    setError("Server isolation active: Please sign in with email and password.");
   };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <div className="relative h-11 w-44 animate-pulse">
-          <Image
-            src="/logo.png"
-            alt="OBHIJAAN"
-            fill
-            className="object-contain dark:invert"
-            priority
-          />
-        </div>
-        <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground font-medium">
-          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
-          <span>Loading session...</span>
-        </div>
-      </div>
-    );
-  }
 
   if (user) {
     return <>{children}</>;
@@ -223,7 +173,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Google Button */}
-          {isFirebaseConfigured && tab !== "forgot" && (
+          {tab !== "forgot" && (
             <div className="mb-3">
               <button
                 type="button"

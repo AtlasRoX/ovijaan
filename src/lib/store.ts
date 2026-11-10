@@ -15,11 +15,7 @@ import {
   ActivityLog,
   UserProfile,
 } from "@/types";
-import {
-  saveDocToFirestore,
-  deleteDocFromFirestore,
-  fetchUserDocsFromFirestore,
-} from "./firebase";
+import { apiClient } from "./api-client";
 
 interface AppState {
   // Auth & Profile
@@ -102,7 +98,7 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       user: null,
-      authLoading: true,
+      authLoading: false,
       theme: "dark",
 
       // Clean empty state with zero seeded / synthetic data
@@ -140,42 +136,22 @@ export const useAppStore = create<AppState>()(
 
       syncFromFirestore: async (userId: string) => {
         try {
-          const [
-            firestoreComps,
-            firestoreProjects,
-            firestoreLinks,
-            firestoreSubmissions,
-            firestoreTasks,
-            firestoreTeammates,
-            firestoreTeams,
-            firestoreResults,
-            firestoreFiles,
-          ] = await Promise.all([
-            fetchUserDocsFromFirestore<Competition>("competitions", userId),
-            fetchUserDocsFromFirestore<Project>("projects", userId),
-            fetchUserDocsFromFirestore<CompetitionProjectLink>("competition_projects", userId),
-            fetchUserDocsFromFirestore<Submission>("submissions", userId),
-            fetchUserDocsFromFirestore<Task>("tasks", userId),
-            fetchUserDocsFromFirestore<Teammate>("teammates", userId),
-            fetchUserDocsFromFirestore<Team>("teams", userId),
-            fetchUserDocsFromFirestore<Result>("results", userId),
-            fetchUserDocsFromFirestore<AppFile>("files", userId),
-          ]);
+          const data = await apiClient.sync.fetchUserData();
+          if (!data) return;
 
-          // If records exist on Firestore, populate them; otherwise keep clean state
           set((state) => ({
-            competitions: firestoreComps.length > 0 ? firestoreComps : state.competitions,
-            projects: firestoreProjects.length > 0 ? firestoreProjects : state.projects,
-            competitionProjectLinks: firestoreLinks.length > 0 ? firestoreLinks : state.competitionProjectLinks,
-            submissions: firestoreSubmissions.length > 0 ? firestoreSubmissions : state.submissions,
-            tasks: firestoreTasks.length > 0 ? firestoreTasks : state.tasks,
-            teammates: firestoreTeammates.length > 0 ? firestoreTeammates : state.teammates,
-            teams: firestoreTeams.length > 0 ? firestoreTeams : state.teams,
-            results: firestoreResults.length > 0 ? firestoreResults : state.results,
-            files: firestoreFiles.length > 0 ? firestoreFiles : state.files,
+            competitions: data.competitions?.length > 0 ? data.competitions : state.competitions,
+            projects: data.projects?.length > 0 ? data.projects : state.projects,
+            competitionProjectLinks: data.competitionProjectLinks?.length > 0 ? data.competitionProjectLinks : state.competitionProjectLinks,
+            submissions: data.submissions?.length > 0 ? data.submissions : state.submissions,
+            tasks: data.tasks?.length > 0 ? data.tasks : state.tasks,
+            teammates: data.teammates?.length > 0 ? data.teammates : state.teammates,
+            teams: data.teams?.length > 0 ? data.teams : state.teams,
+            results: data.results?.length > 0 ? data.results : state.results,
+            files: data.files?.length > 0 ? data.files : state.files,
           }));
         } catch (err) {
-          console.warn("Firestore sync error:", err);
+          console.warn("Server sync error:", err);
         }
       },
 
@@ -226,7 +202,7 @@ export const useAppStore = create<AppState>()(
           competitions: [newComp, ...state.competitions],
         }));
 
-        saveDocToFirestore("competitions", id, newComp);
+        apiClient.sync.saveDoc("competitions", id, newComp);
 
         get().logActivity({
           entityType: "competition",
@@ -251,7 +227,7 @@ export const useAppStore = create<AppState>()(
           }),
         }));
         if (updatedRecord) {
-          saveDocToFirestore("competitions", id, updatedRecord);
+          apiClient.sync.saveDoc("competitions", id, updatedRecord);
         }
         get().logActivity({
           entityType: "competition",
@@ -272,7 +248,7 @@ export const useAppStore = create<AppState>()(
           tasks: state.tasks.filter((t) => t.competitionId !== id),
           results: state.results.filter((r) => r.competitionId !== id),
         }));
-        deleteDocFromFirestore("competitions", id);
+        apiClient.sync.deleteDoc("competitions", id);
         if (comp) {
           get().logActivity({
             entityType: "competition",
@@ -289,7 +265,7 @@ export const useAppStore = create<AppState>()(
           competitions: state.competitions.map((c) => {
             if (c.id === id) {
               const updated = { ...c, archived, updatedAt: now };
-              saveDocToFirestore("competitions", id, updated);
+              apiClient.sync.saveDoc("competitions", id, updated);
               return updated;
             }
             return c;
@@ -313,7 +289,7 @@ export const useAppStore = create<AppState>()(
           projects: [newProj, ...state.projects],
         }));
 
-        saveDocToFirestore("projects", id, newProj);
+        apiClient.sync.saveDoc("projects", id, newProj);
 
         get().logActivity({
           entityType: "project",
@@ -338,7 +314,7 @@ export const useAppStore = create<AppState>()(
           }),
         }));
         if (updatedRecord) {
-          saveDocToFirestore("projects", id, updatedRecord);
+          apiClient.sync.saveDoc("projects", id, updatedRecord);
         }
         get().logActivity({
           entityType: "project",
@@ -362,7 +338,7 @@ export const useAppStore = create<AppState>()(
             t.projectId === id ? { ...t, projectId: undefined } : t
           ),
         }));
-        deleteDocFromFirestore("projects", id);
+        apiClient.sync.deleteDoc("projects", id);
         if (proj) {
           get().logActivity({
             entityType: "project",
@@ -383,7 +359,7 @@ export const useAppStore = create<AppState>()(
                 status: archived ? "Archived" : "In Progress",
                 updatedAt: now,
               };
-              saveDocToFirestore("projects", id, updated);
+              apiClient.sync.saveDoc("projects", id, updated);
               return updated;
             }
             return p;
@@ -411,7 +387,7 @@ export const useAppStore = create<AppState>()(
           competitionProjectLinks: [...state.competitionProjectLinks, newLink],
         }));
 
-        saveDocToFirestore("competition_projects", id, newLink);
+        apiClient.sync.saveDoc("competition_projects", id, newLink);
 
         get().logActivity({
           entityType: "competition",
@@ -431,7 +407,7 @@ export const useAppStore = create<AppState>()(
           ),
         }));
         if (link) {
-          deleteDocFromFirestore("competition_projects", link.id);
+          apiClient.sync.deleteDoc("competition_projects", link.id);
         }
       },
 
@@ -451,7 +427,7 @@ export const useAppStore = create<AppState>()(
           submissions: [newSub, ...state.submissions],
         }));
 
-        saveDocToFirestore("submissions", id, newSub);
+        apiClient.sync.saveDoc("submissions", id, newSub);
 
         get().logActivity({
           entityType: "submission",
@@ -476,7 +452,7 @@ export const useAppStore = create<AppState>()(
           }),
         }));
         if (updatedRecord) {
-          saveDocToFirestore("submissions", id, updatedRecord);
+          apiClient.sync.saveDoc("submissions", id, updatedRecord);
         }
       },
 
@@ -484,7 +460,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           submissions: state.submissions.filter((s) => s.id !== id),
         }));
-        deleteDocFromFirestore("submissions", id);
+        apiClient.sync.deleteDoc("submissions", id);
       },
 
       addTask: (taskData) => {
@@ -503,7 +479,7 @@ export const useAppStore = create<AppState>()(
           tasks: [newTask, ...state.tasks],
         }));
 
-        saveDocToFirestore("tasks", id, newTask);
+        apiClient.sync.saveDoc("tasks", id, newTask);
 
         get().logActivity({
           entityType: "task",
@@ -528,7 +504,7 @@ export const useAppStore = create<AppState>()(
           }),
         }));
         if (updatedRecord) {
-          saveDocToFirestore("tasks", id, updatedRecord);
+          apiClient.sync.saveDoc("tasks", id, updatedRecord);
         }
       },
 
@@ -546,7 +522,7 @@ export const useAppStore = create<AppState>()(
           }),
         }));
         if (updatedRecord) {
-          saveDocToFirestore("tasks", id, updatedRecord);
+          apiClient.sync.saveDoc("tasks", id, updatedRecord);
         }
       },
 
@@ -554,7 +530,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           tasks: state.tasks.filter((t) => t.id !== id),
         }));
-        deleteDocFromFirestore("tasks", id);
+        apiClient.sync.deleteDoc("tasks", id);
       },
 
       addTeammate: (tmData) => {
@@ -569,7 +545,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           teammates: [...state.teammates, newTm],
         }));
-        saveDocToFirestore("teammates", id, newTm);
+        apiClient.sync.saveDoc("teammates", id, newTm);
         return newTm;
       },
 
@@ -585,7 +561,7 @@ export const useAppStore = create<AppState>()(
           }),
         }));
         if (updatedRecord) {
-          saveDocToFirestore("teammates", id, updatedRecord);
+          apiClient.sync.saveDoc("teammates", id, updatedRecord);
         }
       },
 
@@ -598,7 +574,7 @@ export const useAppStore = create<AppState>()(
             leadTeammateId: team.leadTeammateId === id ? undefined : team.leadTeammateId,
           })),
         }));
-        deleteDocFromFirestore("teammates", id);
+        apiClient.sync.deleteDoc("teammates", id);
       },
 
       addTeam: (teamData) => {
@@ -613,7 +589,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           teams: [...state.teams, newTeam],
         }));
-        saveDocToFirestore("teams", id, newTeam);
+        apiClient.sync.saveDoc("teams", id, newTeam);
         return newTeam;
       },
 
@@ -629,7 +605,7 @@ export const useAppStore = create<AppState>()(
           }),
         }));
         if (updatedRecord) {
-          saveDocToFirestore("teams", id, updatedRecord);
+          apiClient.sync.saveDoc("teams", id, updatedRecord);
         }
       },
 
@@ -637,7 +613,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           teams: state.teams.filter((t) => t.id !== id),
         }));
-        deleteDocFromFirestore("teams", id);
+        apiClient.sync.deleteDoc("teams", id);
       },
 
       addResult: (resData) => {
@@ -654,7 +630,7 @@ export const useAppStore = create<AppState>()(
           results: [newRes, ...state.results],
         }));
 
-        saveDocToFirestore("results", id, newRes);
+        apiClient.sync.saveDoc("results", id, newRes);
 
         get().logActivity({
           entityType: "result",
@@ -678,7 +654,7 @@ export const useAppStore = create<AppState>()(
           }),
         }));
         if (updatedRecord) {
-          saveDocToFirestore("results", id, updatedRecord);
+          apiClient.sync.saveDoc("results", id, updatedRecord);
         }
       },
 
@@ -686,7 +662,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           results: state.results.filter((r) => r.id !== id),
         }));
-        deleteDocFromFirestore("results", id);
+        apiClient.sync.deleteDoc("results", id);
       },
 
       addFile: (fileData) => {
@@ -701,7 +677,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           files: [newFile, ...state.files],
         }));
-        saveDocToFirestore("files", id, newFile);
+        apiClient.sync.saveDoc("files", id, newFile);
         return newFile;
       },
 
@@ -709,7 +685,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           files: state.files.filter((f) => f.id !== id),
         }));
-        deleteDocFromFirestore("files", id);
+        apiClient.sync.deleteDoc("files", id);
       },
 
       exportJSON: () => {

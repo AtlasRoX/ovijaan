@@ -3,12 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { X, Mail, Lock, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
-import {
-  signInGoogle,
-  loginWithEmail,
-  registerWithEmail,
-  isFirebaseConfigured,
-} from "@/lib/firebase";
+import { apiClient } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
 
 interface AuthModalProps {
@@ -33,58 +28,41 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (mode === "login") {
-        const res = await loginWithEmail(email, password);
-        setUser({
-          uid: res.user.uid,
-          email: res.user.email,
-          displayName: res.user.displayName || email.split("@")[0],
-          photoURL: res.user.photoURL,
-        });
+        const user = await apiClient.auth.login(email, password);
+        setUser(user);
       } else {
-        const res = await registerWithEmail(email, password);
-        setUser({
-          uid: res.user.uid,
-          email: res.user.email,
-          displayName: email.split("@")[0],
-          photoURL: null,
-        });
+        const user = await apiClient.auth.signup(email, password);
+        setUser(user);
       }
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err.message?.replace("Firebase: ", "") || "Authentication failed.");
+      setError(err.message || "Authentication failed.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setError(null);
+  const handleGoogleAuth = () => {
+    setError("Server security mode active: client keys are isolated. Please use email and password.");
+  };
+
+  const handleGuestMode = async () => {
     setLoading(true);
     try {
-      const res = await signInGoogle();
-      setUser({
-        uid: res.user.uid,
-        email: res.user.email,
-        displayName: res.user.displayName || "Obhijaan Competitor",
-        photoURL: res.user.photoURL,
-      });
+      const guest = await apiClient.auth.guestLogin();
+      setUser(guest);
       onClose();
     } catch (err: any) {
-      console.error(err);
-      setError(err.message?.replace("Firebase: ", "") || "Google sign-in failed.");
+      setUser({
+        uid: "guest-user",
+        email: "guest@obhijaan.local",
+        displayName: "Guest Competitor",
+      });
+      onClose();
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGuestMode = () => {
-    setUser({
-      uid: "guest-user",
-      email: "guest@obhijaan.local",
-      displayName: "Guest Competitor",
-    });
-    onClose();
   };
 
   return (
@@ -131,9 +109,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         )}
 
         {/* Google Sign-in Button */}
-        {isFirebaseConfigured && (
-          <div className="mt-5">
-            <button
+        <div>
+          <button
               onClick={handleGoogleAuth}
               disabled={loading}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background py-2.5 text-xs font-semibold text-foreground hover:bg-muted transition disabled:opacity-50"
@@ -168,7 +145,6 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </div>
             </div>
           </div>
-        )}
 
         {/* Email & Password Form */}
         <form onSubmit={handleEmailAuth} className="space-y-3">

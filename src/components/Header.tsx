@@ -18,7 +18,7 @@ import {
 import { useAppStore } from "@/lib/store";
 import { getRelativeDeadline } from "@/lib/utils";
 import { AuthModal } from "./AuthModal";
-import { logoutUser } from "@/lib/firebase";
+import { apiClient } from "@/lib/api-client";
 
 interface HeaderProps {
   onOpenMobileSidebar: () => void;
@@ -208,14 +208,10 @@ export function Header({ onOpenMobileSidebar, onOpenQuickAdd }: HeaderProps) {
                 </button>
 
                 <button
-                  onClick={async () => {
-                    await logoutUser();
-                    setUser({
-                      uid: "guest-user",
-                      email: "guest@obhijaan.local",
-                      displayName: "Guest Competitor",
-                    });
+                  onClick={() => {
                     setShowUserMenu(false);
+                    setUser(null);
+                    apiClient.auth.logout().catch(() => {});
                   }}
                   className="flex w-full items-center gap-2 rounded-xl p-2 text-rose-500 hover:bg-rose-500/10 transition"
                 >

@@ -15,7 +15,7 @@ import {
 import { useAppStore } from "@/lib/store";
 import { formatDate } from "@/lib/utils";
 import { FileCategory } from "@/types";
-import { uploadFileToFirebase, isFirebaseConfigured } from "@/lib/firebase";
+import { apiClient } from "@/lib/api-client";
 
 export default function FilesPage() {
   const { files, deleteFile, addFile, competitions, projects } = useAppStore();
@@ -51,21 +51,18 @@ export default function FilesPage() {
       fileSize = selectedFile.size;
       fileType = selectedFile.type;
 
-      if (isFirebaseConfigured) {
-        try {
-          setUploadProgress(10);
-          const uploadRes = await uploadFileToFirebase(
-            selectedFile,
-            `vault/${fileCat.toLowerCase()}`,
-            (p) => setUploadProgress(p)
-          );
-          finalUrl = uploadRes.url;
-        } catch (err: any) {
-          console.warn("Firebase upload failed, saving locally:", err);
-          setUploadError("Could not upload to Firebase bucket. Saving locally.");
-        } finally {
-          setUploadProgress(null);
-        }
+      try {
+        setUploadProgress(20);
+        const uploadRes = await apiClient.files.upload(
+          selectedFile,
+          fileCat.toLowerCase()
+        );
+        finalUrl = uploadRes.url;
+      } catch (err: any) {
+        console.warn("Upload failed, saving locally:", err);
+        setUploadError("Could not upload to cloud storage. Saved locally.");
+      } finally {
+        setUploadProgress(null);
       }
     }
 

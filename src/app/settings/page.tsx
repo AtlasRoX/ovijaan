@@ -6,7 +6,6 @@ import {
   Download,
   Upload,
   RefreshCw,
-  Flame,
   Sun,
   Moon,
   Shield,
@@ -14,7 +13,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { isFirebaseConfigured } from "@/lib/firebase";
+import { apiClient } from "@/lib/api-client";
 
 export default function SettingsPage() {
   const {
@@ -96,41 +95,8 @@ export default function SettingsPage() {
           Settings & Data Portability
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Account management, Firebase free tier sync, theme preferences, and full data backups.
+          Account management, workspace preferences, and full data backups.
         </p>
-      </div>
-
-      {/* Firebase Free Tier Status Card */}
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-amber-500/10 p-2.5 text-amber-500">
-            <Flame className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-foreground">
-                Firebase Backend Status (Spark Plan - 100% Free)
-              </h3>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                  isFirebaseConfigured
-                    ? "bg-emerald-500/10 text-emerald-500"
-                    : "bg-blue-500/10 text-blue-500"
-                }`}
-              >
-                {isFirebaseConfigured ? "Connected" : "Local-First Ready"}
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-              OBHIJAAN is fully operational out-of-the-box with local browser persistence (LocalStorage / IndexedDB).
-              To sync your private data across devices with Firebase's free tier, add your keys to{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-primary-500">
-                .env.local
-              </code>
-              .
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Profile Form */}
@@ -250,6 +216,25 @@ export default function SettingsPage() {
             <p className="mt-2 text-xs font-medium text-primary-500">{importStatus}</p>
           )}
         </div>
+      </div>
+
+      {/* Account Session & Sign Out */}
+      <div className="rounded-2xl border border-border bg-card p-5 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-foreground">Active Session</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Signed in as <span className="font-semibold text-foreground">{user?.email || user?.displayName || "Competitor"}</span>
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setUser(null);
+            apiClient.auth.logout().catch(() => {});
+          }}
+          className="rounded-xl border border-border bg-background px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-muted hover:text-rose-500 transition"
+        >
+          Sign Out
+        </button>
       </div>
 
       {/* Danger / Clear Area */}
