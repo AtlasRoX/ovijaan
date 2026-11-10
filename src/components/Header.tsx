@@ -210,6 +210,11 @@ export function Header({ onOpenMobileSidebar, onOpenQuickAdd }: HeaderProps) {
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
+                    if (typeof window !== "undefined") {
+                      try {
+                        localStorage.removeItem("obhijaan_user_session");
+                      } catch (e) {}
+                    }
                     setUser(null);
                     apiClient.auth.logout().catch(() => {});
                   }}

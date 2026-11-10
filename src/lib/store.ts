@@ -783,7 +783,15 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "obhijaan_production_vault_v2",
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() =>
+        typeof window !== "undefined"
+          ? localStorage
+          : ({
+              getItem: () => null,
+              setItem: () => {},
+              removeItem: () => {},
+            } as any)
+      ),
     }
   )
 );

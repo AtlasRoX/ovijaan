@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import { getSessionUser } from "@/lib/server/session";
 
 export const metadata: Metadata = {
   title: "OBHIJAAN | Personal Competition & Project Dashboard",
@@ -24,11 +25,13 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const sessionUser = await getSessionUser();
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -40,7 +43,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased text-foreground">
-        <AppShell>{children}</AppShell>
+        <AppShell initialUser={sessionUser}>{children}</AppShell>
       </body>
     </html>
   );

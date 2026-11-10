@@ -6,13 +6,20 @@ import { Header } from "./Header";
 import { QuickAddModal } from "./QuickAddModal";
 import { PwaRegister } from "./PwaRegister";
 import { AuthGate } from "./AuthGate";
+import { UserProfile } from "@/types";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  initialUser,
+}: {
+  children: React.ReactNode;
+  initialUser?: UserProfile | null;
+}) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   return (
-    <AuthGate>
+    <AuthGate initialUser={initialUser}>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Sidebar
           mobileOpen={mobileSidebarOpen}

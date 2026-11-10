@@ -10,12 +10,19 @@ import {
   ShieldCheck,
   User,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { UserProfile } from "@/types";
 
-export function AuthGate({ children }: { children: React.ReactNode }) {
+interface AuthGateProps {
+  children: React.ReactNode;
+  initialUser?: UserProfile | null;
+}
+
+export function AuthGate({ children, initialUser }: AuthGateProps) {
   const { user, setUser, setAuthLoading } = useAppStore();
 
   const [tab, setTab] = useState<"login" | "signup" | "forgot">("login");
@@ -27,12 +34,38 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // 1. If server session passed down and store is empty, sync to store
+    if (initialUser && !user) {
+      setUser(initialUser);
+      return;
+    }
+
+    // 2. Check local-first storage fallback
+    if (!user && typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("obhijaan_user_session");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.uid) {
+            setUser(parsed);
+            return;
+          }
+        }
+      } catch (err) {
+        // Ignore JSON parse errors
+      }
+    }
+
+    // 3. Silent session validation from server cookie
     let isMounted = true;
     apiClient.auth
       .getMe()
       .then((res) => {
         if (!isMounted) return;
         if (res?.user) {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("obhijaan_user_session", JSON.stringify(res.user));
+          }
           setUser(res.user);
         }
       })
@@ -46,7 +79,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [setUser, setAuthLoading]);
+  }, [initialUser, user, setUser, setAuthLoading]);
+
+  const handleAuthSuccess = (loggedUser: UserProfile) => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("obhijaan_user_session", JSON.stringify(loggedUser));
+      } catch (e) {}
+    }
+    setUser(loggedUser);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,10 +99,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     try {
       if (tab === "login") {
         const loggedUser = await apiClient.auth.login(email, password);
-        setUser(loggedUser);
+        handleAuthSuccess(loggedUser);
       } else if (tab === "signup") {
         const newUser = await apiClient.auth.signup(email, password, displayName);
-        setUser(newUser);
+        handleAuthSuccess(newUser);
       } else if (tab === "forgot") {
         await apiClient.auth.resetPassword(email);
         setSuccessMsg("Password reset link sent! Check your inbox.");
@@ -79,7 +121,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     setSubmitting(true);
     try {
       const loggedUser = await apiClient.auth.googleLogin();
-      setUser(loggedUser);
+      handleAuthSuccess(loggedUser);
     } catch (err: any) {
       setError(err.message || "Google sign-in failed.");
     } finally {
@@ -91,20 +133,30 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     setSubmitting(true);
     try {
       const guest = await apiClient.auth.guestLogin();
-      setUser(guest);
+      handleAuthSuccess(guest);
     } catch (err: any) {
-      setUser({
+      const fallbackGuest: UserProfile = {
         uid: "guest-mode",
         email: "guest@obhijaan.local",
         displayName: "Guest Competitor",
         role: "guest",
-      });
+      };
+      handleAuthSuccess(fallbackGuest);
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (user) {
+  const handleFillDemo = () => {
+    setEmail("competitor@obhijaan.app");
+    setPassword("competitor2026");
+    setError(null);
+  };
+
+  // Determine active user (client state takes priority, fallback to server session)
+  const activeUser = user || initialUser;
+
+  if (activeUser) {
     return <>{children}</>;
   }
 
@@ -316,6 +368,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           {tab === "forgot" && (
             <div className="mt-3 text-center">
               <button
+                type="button"
                 onClick={() => setTab("login")}
                 className="text-xs font-medium text-primary-500 hover:underline"
               >
@@ -324,11 +377,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          {/* Guest Mode Fallback */}
-          <div className="mt-4 pt-3.5 border-t border-border/50 text-center">
+          {/* Quick Demo Fill & Guest Options */}
+          <div className="mt-4 pt-3.5 border-t border-border/50 flex flex-col gap-2 text-center">
             <button
+              type="button"
+              onClick={handleFillDemo}
+              className="text-[11px] text-muted-foreground/70 hover:text-primary-400 transition inline-flex items-center justify-center gap-1"
+            >
+              <Sparkles className="h-3 w-3 text-amber-400" />
+              <span>Fill demo credentials (1-click)</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleGuestAccess}
-              className="text-xs text-muted-foreground hover:text-foreground font-medium transition inline-flex items-center gap-1 group"
+              className="text-xs text-muted-foreground hover:text-foreground font-medium transition inline-flex items-center justify-center gap-1 group"
             >
               <span>Explore in Guest Mode (Offline Only)</span>
               <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />
