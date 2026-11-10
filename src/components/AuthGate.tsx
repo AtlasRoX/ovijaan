@@ -5,12 +5,8 @@ import Image from "next/image";
 import {
   Mail,
   Lock,
-  Sparkles,
   AlertCircle,
   CheckCircle2,
-  Trophy,
-  FolderKanban,
-  CheckSquare,
   ShieldCheck,
   User,
 } from "lucide-react";
@@ -36,7 +32,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Listen to Firebase Auth state on mount
   useEffect(() => {
     const auth = getFirebaseAuth();
     if (!auth) {
@@ -53,7 +48,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           photoURL: firebaseUser.photoURL,
         });
       } else {
-        // If not in guest mode, clear user
         if (user?.uid !== "guest-mode") {
           setUser(null);
         }
@@ -64,7 +58,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [setUser, setAuthLoading]);
 
-  // Handle Form Submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -96,9 +89,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       console.error(err);
       let msg = err.message || "Authentication error occurred.";
       if (msg.includes("auth/invalid-credential") || msg.includes("auth/user-not-found")) {
-        msg = "Invalid email or password. Please check your credentials.";
+        msg = "Invalid email or password.";
       } else if (msg.includes("auth/email-already-in-use")) {
-        msg = "An account with this email already exists. Try signing in.";
+        msg = "Account already exists with this email.";
       } else if (msg.includes("auth/weak-password")) {
         msg = "Password should be at least 6 characters.";
       }
@@ -122,7 +115,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       });
     } catch (err: any) {
       console.error(err);
-      setError(err.message?.replace("Firebase: ", "") || "Google sign-in was cancelled or failed.");
+      setError(err.message?.replace("Firebase: ", "") || "Google sign-in was cancelled.");
     } finally {
       setSubmitting(false);
     }
@@ -136,11 +129,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // 1. Loading Splash
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <div className="relative h-14 w-40 animate-pulse">
+        <div className="relative h-9 w-28 animate-pulse">
           <Image
             src="/logo.png"
             alt="OBHIJAAN"
@@ -149,25 +141,23 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             priority
           />
         </div>
-        <div className="mt-6 flex items-center gap-2 text-xs text-muted-foreground font-semibold">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
-          <span>Restoring secure session...</span>
+        <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground font-medium">
+          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+          <span>Loading session...</span>
         </div>
       </div>
     );
   }
 
-  // 2. If authenticated or guest, render full application
   if (user) {
     return <>{children}</>;
   }
 
-  // 3. Dedicated Full-Page Production Authentication Portal
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col justify-center py-12 sm:px-6 lg:px-8 animate-fade-in">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        {/* Brand Logo */}
-        <div className="relative mx-auto h-16 w-48">
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center py-8 px-4 animate-fade-in">
+      <div className="w-full max-w-[340px] text-center">
+        {/* Compact Logo */}
+        <div className="relative mx-auto h-8 w-28">
           <Image
             src="/logo.png"
             alt="OBHIJAAN"
@@ -176,25 +166,25 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             priority
           />
         </div>
-        <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="mt-2.5 text-base font-bold tracking-tight text-foreground">
           Welcome to OBHIJAAN
         </h1>
-        <p className="mt-1.5 text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
-          One account, one private workspace, one source of truth for your hackathons and project milestones.
+        <p className="mt-0.5 text-[11px] text-muted-foreground leading-snug">
+          Private workspace for competitions and project milestones.
         </p>
       </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-xl sm:p-8">
-          {/* Tab selector */}
-          <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 mb-6">
+      <div className="mt-4 w-full max-w-[340px]">
+        <div className="rounded-xl border border-border bg-card p-4 shadow-lg">
+          {/* Compact Tab Switcher */}
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-0.5 mb-3.5">
             <button
               onClick={() => {
                 setTab("login");
                 setError(null);
                 setSuccessMsg(null);
               }}
-              className={`rounded-lg py-2 text-xs font-semibold transition ${
+              className={`rounded-md py-1 text-[11px] font-semibold transition ${
                 tab === "login"
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -208,7 +198,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 setError(null);
                 setSuccessMsg(null);
               }}
-              className={`rounded-lg py-2 text-xs font-semibold transition ${
+              className={`rounded-md py-1 text-[11px] font-semibold transition ${
                 tab === "signup"
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -218,30 +208,30 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             </button>
           </div>
 
-          {/* Feedback messages */}
+          {/* Alert messages */}
           {error && (
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-500">
-              <AlertCircle className="h-4 w-4 shrink-0" />
+            <div className="mb-3 flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 p-2 text-[11px] text-rose-500">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
           {successMsg && (
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-500">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <div className="mb-3 flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 text-[11px] text-emerald-500">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
               <span>{successMsg}</span>
             </div>
           )}
 
-          {/* Google Sign In */}
+          {/* Google Button */}
           {isFirebaseConfigured && tab !== "forgot" && (
-            <div className="mb-5">
+            <div className="mb-3">
               <button
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={submitting}
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-background py-2.5 text-xs font-semibold text-foreground hover:bg-muted transition disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition disabled:opacity-50"
               >
-                <svg className="h-4 w-4" viewBox="0 0 24 24">
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -262,11 +252,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 <span>Continue with Google</span>
               </button>
 
-              <div className="relative my-4">
+              <div className="relative my-2.5">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t border-border" />
                 </div>
-                <div className="relative flex justify-center text-[10px] uppercase">
+                <div className="relative flex justify-center text-[9px] uppercase">
                   <span className="bg-card px-2 text-muted-foreground">or with email</span>
                 </div>
               </div>
@@ -274,35 +264,35 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          <form onSubmit={handleSubmit} className="space-y-2.5">
             {tab === "signup" && (
               <div>
-                <label className="text-xs font-medium text-foreground">Your Name</label>
+                <label className="text-[11px] font-medium text-foreground">Your Name</label>
                 <div className="relative mt-1">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <User className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
                     required
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="e.g. Tanvir Ahmed"
-                    className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm focus:border-primary-500 focus:outline-none"
+                    placeholder="Full name"
+                    className="h-8 w-full rounded-lg border border-input bg-background pl-8 pr-2.5 text-xs focus:border-primary-500 focus:outline-none"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="text-xs font-medium text-foreground">Email Address</label>
+              <label className="text-[11px] font-medium text-foreground">Email Address</label>
               <div className="relative mt-1">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Mail className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm focus:border-primary-500 focus:outline-none"
+                  className="h-8 w-full rounded-lg border border-input bg-background pl-8 pr-2.5 text-xs focus:border-primary-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -310,7 +300,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             {tab !== "forgot" && (
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-foreground">Password</label>
+                  <label className="text-[11px] font-medium text-foreground">Password</label>
                   {tab === "login" && (
                     <button
                       type="button"
@@ -319,14 +309,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                         setError(null);
                         setSuccessMsg(null);
                       }}
-                      className="text-[11px] text-primary-500 hover:underline"
+                      className="text-[10px] text-primary-500 hover:underline"
                     >
                       Forgot password?
                     </button>
                   )}
                 </div>
                 <div className="relative mt-1">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Lock className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="password"
                     required
@@ -334,7 +324,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm focus:border-primary-500 focus:outline-none"
+                    className="h-8 w-full rounded-lg border border-input bg-background pl-8 pr-2.5 text-xs focus:border-primary-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -343,7 +333,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-2 w-full rounded-xl bg-primary-600 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-primary-700 transition disabled:opacity-50"
+              className="mt-1 w-full rounded-lg bg-primary-600 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary-700 transition disabled:opacity-50"
             >
               {submitting
                 ? "Processing..."
@@ -356,10 +346,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           </form>
 
           {tab === "forgot" && (
-            <div className="mt-4 text-center">
+            <div className="mt-3 text-center">
               <button
                 onClick={() => setTab("login")}
-                className="text-xs text-primary-500 hover:underline"
+                className="text-[11px] text-primary-500 hover:underline"
               >
                 ← Back to Sign In
               </button>
@@ -367,10 +357,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Guest fallback button */}
-          <div className="mt-5 pt-4 border-t border-border text-center">
+          <div className="mt-3.5 pt-3 border-t border-border text-center">
             <button
               onClick={handleGuestAccess}
-              className="text-xs text-muted-foreground hover:text-foreground font-medium transition"
+              className="text-[11px] text-muted-foreground hover:text-foreground font-medium transition"
             >
               Explore in Guest Mode (Offline Only) →
             </button>
@@ -378,9 +368,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Security badge */}
-        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <ShieldCheck className="h-4 w-4 text-emerald-500" />
-          <span>Private, authenticated workspace • Zero public sharing</span>
+        <div className="mt-3.5 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+          <span>Private, authenticated workspace</span>
         </div>
       </div>
     </div>

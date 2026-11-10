@@ -138,20 +138,20 @@ export function QuickAddModal({
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl animate-fade-in">
+      <div className="relative w-full max-w-md rounded-xl border border-border bg-card p-4 shadow-xl animate-fade-in max-h-[92vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <h2 className="text-lg font-bold text-foreground">Quick Create</h2>
+        <div className="flex items-center justify-between border-b border-border pb-2.5">
+          <h2 className="text-sm font-bold text-foreground">Quick Create</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
+            className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Tab Selector */}
-        <div className="mt-4 grid grid-cols-4 gap-1 rounded-xl bg-muted p-1">
+        <div className="mt-3 grid grid-cols-4 gap-1 rounded-lg bg-muted p-0.5">
           <button
             type="button"
             onClick={() => setActiveTab("competition")}

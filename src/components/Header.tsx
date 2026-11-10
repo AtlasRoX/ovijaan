@@ -53,36 +53,36 @@ export function Header({ onOpenMobileSidebar, onOpenQuickAdd }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur-md lg:px-6">
+    <header className="sticky top-0 z-30 flex h-12 w-full items-center justify-between border-b border-border bg-card/80 px-3.5 backdrop-blur-md lg:px-5">
       {/* Left: Mobile Toggle & Search */}
-      <div className="flex items-center gap-3 flex-1 max-w-xl">
+      <div className="flex items-center gap-2 flex-1 max-w-md">
         <button
           onClick={onOpenMobileSidebar}
-          className="rounded-lg p-2 text-muted-foreground hover:bg-muted lg:hidden"
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted lg:hidden"
           aria-label="Open sidebar"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-4 w-4" />
         </button>
 
         <form onSubmit={handleSearchSubmit} className="relative w-full">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search competitions, projects, tech stacks, tags..."
-            className="h-10 w-full rounded-xl border border-input bg-background/50 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            placeholder="Search competitions, projects, tags..."
+            className="h-8 w-full rounded-lg border border-input bg-background/50 pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500/20"
           />
         </form>
       </div>
 
       {/* Right: Quick Deadline Alerts, Theme, Avatar */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {/* Deadlines Notification Popover */}
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="relative rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition"
+            className="relative rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition"
             aria-label="Notifications"
           >
             <Bell className="h-5 w-5" />
@@ -153,24 +153,24 @@ export function Header({ onOpenMobileSidebar, onOpenQuickAdd }: HeaderProps) {
         {/* Theme Toggle */}
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition"
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition"
           aria-label="Toggle theme"
         >
           {theme === "dark" ? (
-            <Sun className="h-5 w-5 text-amber-400" />
+            <Sun className="h-4 w-4 text-amber-400" />
           ) : (
-            <Moon className="h-5 w-5 text-slate-700" />
+            <Moon className="h-4 w-4 text-slate-700" />
           )}
         </button>
 
         {/* User Badge & Menu */}
-        <div className="relative pl-2 border-l border-border">
+        <div className="relative pl-1.5 border-l border-border">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 rounded-xl p-1 hover:bg-muted transition"
+            className="flex items-center gap-1.5 rounded-lg p-1 hover:bg-muted transition"
             aria-label="User profile menu"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-400 text-xs font-bold text-white shadow-sm overflow-hidden">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-primary-600 to-indigo-400 text-[11px] font-bold text-white shadow-sm overflow-hidden">
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="" className="h-full w-full object-cover" />
               ) : user?.displayName ? (
@@ -179,7 +179,7 @@ export function Header({ onOpenMobileSidebar, onOpenQuickAdd }: HeaderProps) {
                 "O"
               )}
             </div>
-            <span className="hidden text-xs font-medium text-foreground sm:inline-block max-w-[100px] truncate">
+            <span className="hidden text-xs font-medium text-foreground sm:inline-block max-w-[90px] truncate">
               {user?.displayName || "Competitor"}
             </span>
           </button>

@@ -118,14 +118,14 @@ export function Sidebar({ mobileOpen = false, onCloseMobile, onOpenQuickAdd }: S
       {/* Sidebar Container */}
       <aside
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-card transition-transform duration-300 ease-in-out lg:translate-x-0",
+          "fixed top-0 bottom-0 left-0 z-40 flex w-56 flex-col border-r border-border bg-card transition-transform duration-300 ease-in-out lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand Header */}
-        <div className="flex h-16 items-center justify-between border-b border-border px-4">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-9 w-28 overflow-hidden rounded">
+        <div className="flex h-13 items-center justify-between border-b border-border px-3.5 py-2.5">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="relative h-7 w-24 overflow-hidden rounded">
               <Image
                 src="/logo.png"
                 alt="OBHIJAAN"
@@ -138,29 +138,29 @@ export function Sidebar({ mobileOpen = false, onCloseMobile, onOpenQuickAdd }: S
           {onCloseMobile && (
             <button
               onClick={onCloseMobile}
-              className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted lg:hidden"
+              className="rounded-lg p-1 text-muted-foreground hover:bg-muted lg:hidden"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
 
         {/* Quick Action Button */}
-        <div className="p-3">
+        <div className="p-2.5">
           <button
             onClick={() => {
               if (onOpenQuickAdd) onOpenQuickAdd();
               if (onCloseMobile) onCloseMobile();
             }}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 active:scale-[0.98] transition"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary-700 active:scale-[0.98] transition"
           >
-            <PlusCircle className="h-4 w-4" />
+            <PlusCircle className="h-3.5 w-3.5" />
             <span>Quick Create</span>
           </button>
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-1">
           {navItems.map((item) => {
             const isActive =
               item.href === "/"
@@ -173,16 +173,16 @@ export function Sidebar({ mobileOpen = false, onCloseMobile, onOpenQuickAdd }: S
                 href={item.href}
                 onClick={onCloseMobile}
                 className={cn(
-                  "group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition",
+                  "group flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition",
                   isActive
                     ? "bg-primary-500/10 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400 font-semibold"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <item.icon
                     className={cn(
-                      "h-4 w-4 transition-colors",
+                      "h-3.5 w-3.5 transition-colors",
                       isActive
                         ? "text-primary-600 dark:text-primary-400"
                         : "text-muted-foreground group-hover:text-foreground"
@@ -193,7 +193,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile, onOpenQuickAdd }: S
                 {item.badge !== null && (
                   <span
                     className={cn(
-                      "rounded-full px-2 py-0.5 text-xs font-semibold",
+                      "rounded-full px-1.5 py-0.2 text-[10px] font-semibold",
                       item.badgeColor || "bg-muted text-muted-foreground"
                     )}
                   >
@@ -206,15 +206,14 @@ export function Sidebar({ mobileOpen = false, onCloseMobile, onOpenQuickAdd }: S
         </nav>
 
         {/* Footer info */}
-        <div className="border-t border-border p-3 text-xs text-muted-foreground">
+        <div className="border-t border-border p-2.5 text-[11px] text-muted-foreground">
           <div className="flex items-center justify-between">
-            <span className="font-medium text-foreground">OBHIJAAN v1.0</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Local Ready
+            <span className="font-semibold text-foreground text-[10px]">OBHIJAAN v1.0</span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.2 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="h-1 w-1 rounded-full bg-emerald-500" />
+              Ready
             </span>
           </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">Private Competition Manager</p>
         </div>
       </aside>
     </>

@@ -179,7 +179,7 @@ export default function CompetitionDetailPage({
     alert("Submission record saved!");
   };
 
-  const handleSaveResult = (e: React.FormEvent) => {
+  const handleSaveResult = async (e: React.FormEvent) => {
     e.preventDefault();
     addResult({
       competitionId: comp.id,
