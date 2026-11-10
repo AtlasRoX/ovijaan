@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/server/session";
 import {
   serverSaveFirestoreDoc,
   serverDeleteFirestoreDoc,
+  serverGetFirestoreDoc,
   serverFetchUserDocs,
   isServerFirebaseConfigured,
 } from "@/lib/server/firebase-admin";
@@ -126,6 +127,12 @@ export async function DELETE(req: NextRequest) {
 
     if (user.uid === "guest-mode" || !isServerFirebaseConfigured) {
       return NextResponse.json({ ok: true, offline: true });
+    }
+
+    // Verify ownership before deleting — prevent cross-user IDOR
+    const existing = await serverGetFirestoreDoc(collection, id);
+    if (existing && existing.userId !== user.uid) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await serverDeleteFirestoreDoc(collection, id);

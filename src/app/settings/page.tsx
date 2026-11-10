@@ -19,6 +19,7 @@ export default function SettingsPage() {
   const {
     user,
     setUser,
+    logout,
     theme,
     setTheme,
     exportJSON,
@@ -30,16 +31,34 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState(user?.displayName || "");
   const [preferredCurrency, setPreferredCurrency] = useState(user?.preferredCurrency || "USD");
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setUser({
-      uid: user?.uid || "demo-user",
-      email: user?.email || "user@obhijaan.app",
-      displayName: displayName.trim(),
-      preferredCurrency,
-    });
-    alert("Profile settings updated!");
+    setSavingProfile(true);
+    setProfileSuccess(null);
+    setProfileError(null);
+
+    try {
+      const updated = await apiClient.auth.updateProfile(displayName.trim(), preferredCurrency);
+      setUser(updated);
+      setProfileSuccess("Profile settings successfully updated and saved to your session!");
+      setTimeout(() => setProfileSuccess(null), 4000);
+    } catch (err: any) {
+      // Fallback local update if offline
+      setUser({
+        uid: user?.uid || "guest-mode",
+        email: user?.email || "user@obhijaan.app",
+        displayName: displayName.trim(),
+        preferredCurrency,
+      });
+      setProfileSuccess("Profile updated locally!");
+      setTimeout(() => setProfileSuccess(null), 4000);
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const handleDownloadJSON = () => {
@@ -102,6 +121,14 @@ export default function SettingsPage() {
       {/* Profile Form */}
       <form onSubmit={handleSaveProfile} className="rounded-2xl border border-border bg-card p-5 space-y-4">
         <h3 className="text-sm font-bold text-foreground">Profile & Currency</h3>
+
+        {profileSuccess && (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-500 animate-fade-in">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>{profileSuccess}</span>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-foreground">Display Name</label>
@@ -129,9 +156,10 @@ export default function SettingsPage() {
 
         <button
           type="submit"
-          className="rounded-xl bg-primary-600 px-4 py-2 text-xs font-semibold text-white hover:bg-primary-700 transition"
+          disabled={savingProfile}
+          className="rounded-xl bg-primary-600 px-4 py-2 text-xs font-semibold text-white hover:bg-primary-700 transition disabled:opacity-50"
         >
-          Save Changes
+          {savingProfile ? "Saving..." : "Save Changes"}
         </button>
       </form>
 
@@ -227,14 +255,8 @@ export default function SettingsPage() {
           </p>
         </div>
         <button
-          onClick={() => {
-            if (typeof window !== "undefined") {
-              try {
-                localStorage.removeItem("obhijaan_user_session");
-              } catch (e) {}
-            }
-            setUser(null);
-            apiClient.auth.logout().catch(() => {});
+          onClick={async () => {
+            await logout();
           }}
           className="rounded-xl border border-border bg-background px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-muted hover:text-rose-500 transition"
         >

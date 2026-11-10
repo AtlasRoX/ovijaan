@@ -65,12 +65,12 @@ export const apiClient = {
       return data.user;
     },
 
-    async googleLogin(): Promise<UserProfile> {
+    async googleLogin(idToken: string): Promise<UserProfile> {
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ action: "google" }),
+        body: JSON.stringify({ action: "google", idToken }),
       });
       const data = await res.json();
       if (!res.ok) {

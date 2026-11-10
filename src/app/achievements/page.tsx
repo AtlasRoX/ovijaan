@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Award, Trophy, Sparkles, ExternalLink, FileText, Calendar } from "lucide-react";
+import { Award, Trophy, PartyPopper, ExternalLink, FileText, Calendar } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatCurrency } from "@/lib/utils";
 
@@ -52,7 +52,7 @@ export default function AchievementsPage() {
           onClick={handleCelebrate}
           className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:from-amber-600 hover:to-amber-700 transition"
         >
-          <Sparkles className="h-4 w-4" />
+          <PartyPopper className="h-4 w-4" />
           <span>Celebrate Wins</span>
         </button>
       </div>

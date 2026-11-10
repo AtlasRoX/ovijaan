@@ -24,17 +24,21 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     if (isServerFirebaseConfigured) {
-      const folder = `users/${user.uid}/${category.toLowerCase()}`;
-      const uploaded = await serverUploadFileToStorage(
-        buffer,
-        file.name,
-        file.type,
-        folder
-      );
-      return NextResponse.json(uploaded);
+      try {
+        const folder = `users/${user.uid}/${category.toLowerCase()}`;
+        const uploaded = await serverUploadFileToStorage(
+          buffer,
+          file.name,
+          file.type,
+          folder
+        );
+        return NextResponse.json(uploaded);
+      } catch (storageErr) {
+        console.warn("[Files API] Cloud Storage upload fallback to base64:", storageErr);
+      }
     }
 
-    // Fallback: create base64 data URL if storage bucket is not active
+    // Fallback: create base64 data URL if storage bucket is not active or errored
     const base64 = buffer.toString("base64");
     const dataUrl = `data:${file.type || "application/octet-stream"};base64,${base64}`;
 

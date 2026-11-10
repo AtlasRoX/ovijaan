@@ -14,6 +14,10 @@ export const isServerFirebaseConfigured = Boolean(
   FIREBASE_API_KEY !== "your_api_key_here"
 );
 
+// Auto-detected cloud availability state
+let isFirestoreDatabaseAvailable: boolean | null = null;
+let isStorageBucketAvailable: boolean | null = null;
+
 // ==========================================
 // 1. FIRESTORE REST VALUE SERIALIZATION
 // ==========================================
@@ -105,7 +109,7 @@ export async function serverSignInWithEmail(email: string, pass: string) {
   const res = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(4000),
+    signal: AbortSignal.timeout(10000),
     body: JSON.stringify({
       email,
       password: pass,
@@ -140,7 +144,7 @@ export async function serverSignUpWithEmail(
   const res = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(4000),
+    signal: AbortSignal.timeout(10000),
     body: JSON.stringify({
       email,
       password: pass,
@@ -204,6 +208,39 @@ export async function serverSendPasswordReset(email: string) {
   return { ok: true };
 }
 
+/**
+ * Verify a Firebase ID token (e.g., from Google Sign-In popup) server-side.
+ * Uses the accounts:lookup REST endpoint which validates the token signature
+ * and returns the user record. This is the secure verification path — the
+ * client never controls the identity, only the one-time token from Google.
+ */
+export async function serverVerifyIdToken(idToken: string) {
+  if (!isServerFirebaseConfigured) {
+    throw new Error("Server Firebase credentials not configured in .env.local");
+  }
+
+  const endpoint = `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`;
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(10000),
+    body: JSON.stringify({ idToken }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.users?.length) {
+    throw new Error(data?.error?.message || "Invalid or expired ID token");
+  }
+
+  const u = data.users[0];
+  return {
+    uid: u.localId,
+    email: u.email,
+    displayName: u.displayName || u.email?.split("@")[0] || "Competitor",
+    photoURL: u.photoUrl || null,
+  };
+}
+
 // ==========================================
 // 3. SERVER-SIDE FIRESTORE PROXY (REST)
 // ==========================================
@@ -213,19 +250,32 @@ export async function serverSaveFirestoreDoc(
   docId: string,
   data: Record<string, any>
 ) {
-  if (!isServerFirebaseConfigured) return;
+  if (!isServerFirebaseConfigured || isFirestoreDatabaseAvailable === false) return;
 
-  const endpoint = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}/${docId}?key=${FIREBASE_API_KEY}`;
-  const res = await fetch(endpoint, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(3000),
-    body: JSON.stringify(encodeFirestoreDoc(data)),
-  });
+  try {
+    const endpoint = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}/${docId}?key=${FIREBASE_API_KEY}`;
+    const res = await fetch(endpoint, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(8000),
+      body: JSON.stringify(encodeFirestoreDoc(data)),
+    });
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.warn(`[Server Firestore] Save failed for ${collection}/${docId}:`, errorText);
+    if (!res.ok) {
+      const errorText = await res.text();
+      if (errorText.includes("does not exist") || res.status === 404) {
+        isFirestoreDatabaseAvailable = false;
+        console.info(
+          `[OBHIJAAN] Cloud Firestore database (default) is not yet provisioned in Firebase Console for '${FIREBASE_PROJECT_ID}'. Running in resilient Local-First mode without error.`
+        );
+        return;
+      }
+      console.warn(`[Server Firestore] Save failed for ${collection}/${docId}:`, errorText);
+    } else {
+      isFirestoreDatabaseAvailable = true;
+    }
+  } catch (err) {
+    // Network or abort error ignored for local resilience
   }
 }
 
@@ -233,16 +283,37 @@ export async function serverDeleteFirestoreDoc(
   collection: string,
   docId: string
 ) {
-  if (!isServerFirebaseConfigured) return;
+  if (!isServerFirebaseConfigured || isFirestoreDatabaseAvailable === false) return;
 
-  const endpoint = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}/${docId}?key=${FIREBASE_API_KEY}`;
-  const res = await fetch(endpoint, {
-    method: "DELETE",
-  });
+  try {
+    const endpoint = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}/${docId}?key=${FIREBASE_API_KEY}`;
+    await fetch(endpoint, {
+      method: "DELETE",
+    });
+  } catch (err) {}
+}
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.warn(`[Server Firestore] Delete failed for ${collection}/${docId}:`, errorText);
+/**
+ * Fetch a single Firestore document by collection + docId.
+ * Used for ownership verification before deletes.
+ */
+export async function serverGetFirestoreDoc(
+  collection: string,
+  docId: string
+): Promise<Record<string, any> | null> {
+  if (!isServerFirebaseConfigured || isFirestoreDatabaseAvailable === false) return null;
+
+  try {
+    const endpoint = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}/${docId}?key=${FIREBASE_API_KEY}`;
+    const res = await fetch(endpoint, {
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!res.ok) return null;
+    const doc = await res.json();
+    return decodeFirestoreDoc(doc);
+  } catch (err) {
+    return null;
   }
 }
 
@@ -250,7 +321,9 @@ export async function serverFetchUserDocs<T = any>(
   collection: string,
   userId: string
 ): Promise<T[]> {
-  if (!isServerFirebaseConfigured || !userId) return [];
+  if (!isServerFirebaseConfigured || !userId || isFirestoreDatabaseAvailable === false) {
+    return [];
+  }
 
   const endpoint = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_API_KEY}`;
   const queryPayload = {
@@ -270,15 +343,24 @@ export async function serverFetchUserDocs<T = any>(
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(8000),
       body: JSON.stringify(queryPayload),
     });
 
     if (!res.ok) {
-      console.warn(`[Server Firestore] Query failed for ${collection}:`, await res.text());
+      const errorText = await res.text();
+      if (errorText.includes("does not exist") || res.status === 404) {
+        isFirestoreDatabaseAvailable = false;
+        console.info(
+          `[OBHIJAAN] Cloud Firestore database (default) is not yet provisioned in Firebase Console for '${FIREBASE_PROJECT_ID}'. Running in resilient Local-First mode without error.`
+        );
+        return [];
+      }
+      console.warn(`[Server Firestore] Query failed for ${collection}:`, errorText);
       return [];
     }
 
+    isFirestoreDatabaseAvailable = true;
     const items = await res.json();
     if (!Array.isArray(items)) return [];
 
@@ -291,7 +373,6 @@ export async function serverFetchUserDocs<T = any>(
     }
     return results;
   } catch (err) {
-    console.warn(`[Server Firestore] Error querying ${collection}:`, err);
     return [];
   }
 }
@@ -306,7 +387,7 @@ export async function serverUploadFileToStorage(
   mimeType: string,
   folder: string = "vault"
 ): Promise<{ url: string; name: string; size: number; type: string }> {
-  if (!isServerFirebaseConfigured || !FIREBASE_STORAGE_BUCKET) {
+  if (!isServerFirebaseConfigured || !FIREBASE_STORAGE_BUCKET || isStorageBucketAvailable === false) {
     throw new Error("Server Firebase Storage is not configured");
   }
 
@@ -326,9 +407,16 @@ export async function serverUploadFileToStorage(
 
   if (!res.ok) {
     const errText = await res.text();
+    if (res.status === 404 || errText.includes("Not Found")) {
+      isStorageBucketAvailable = false;
+      console.info(
+        `[OBHIJAAN] Cloud Storage bucket '${FIREBASE_STORAGE_BUCKET}' is not yet provisioned. Storing attachments locally as data URLs.`
+      );
+    }
     throw new Error(`Firebase Storage server upload failed: ${errText}`);
   }
 
+  isStorageBucketAvailable = true;
   const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${FIREBASE_STORAGE_BUCKET}/o/${encodedPath}?alt=media`;
 
   return {

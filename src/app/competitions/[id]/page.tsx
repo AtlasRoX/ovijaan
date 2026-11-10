@@ -19,7 +19,6 @@ import {
   Edit3,
   Plus,
   CheckCircle2,
-  Sparkles,
   X,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";

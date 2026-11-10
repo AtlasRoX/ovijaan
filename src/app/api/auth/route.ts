@@ -8,6 +8,7 @@ import {
   serverSignInWithEmail,
   serverSignUpWithEmail,
   serverSendPasswordReset,
+  serverVerifyIdToken,
   isServerFirebaseConfigured,
 } from "@/lib/server/firebase-admin";
 import { UserProfile } from "@/types";
@@ -40,45 +41,7 @@ export async function POST(req: NextRequest) {
 
       let user: UserProfile;
       if (isServerFirebaseConfigured) {
-        try {
-          user = await serverSignInWithEmail(email, password);
-        } catch (loginErr: any) {
-          const errMsg = loginErr.message || "";
-          // If the account does not exist yet, automatically create and sign in!
-          if (
-            errMsg.includes("EMAIL_NOT_FOUND") ||
-            errMsg.includes("INVALID_LOGIN_CREDENTIALS")
-          ) {
-            try {
-              user = await serverSignUpWithEmail(
-                email,
-                password,
-                email.split("@")[0]
-              );
-            } catch (signupErr: any) {
-              if (signupErr.message?.includes("EMAIL_EXISTS")) {
-                return NextResponse.json(
-                  { error: "Incorrect password for this email address." },
-                  { status: 400 }
-                );
-              }
-              if (signupErr.message?.includes("WEAK_PASSWORD")) {
-                return NextResponse.json(
-                  { error: "Password must be at least 6 characters." },
-                  { status: 400 }
-                );
-              }
-              throw signupErr;
-            }
-          } else if (errMsg.includes("INVALID_PASSWORD")) {
-            return NextResponse.json(
-              { error: "Incorrect password for this email address." },
-              { status: 400 }
-            );
-          } else {
-            throw loginErr;
-          }
-        }
+        user = await serverSignInWithEmail(email, password);
       } else {
         // Fallback local auth if keys are not present
         user = {
@@ -103,28 +66,7 @@ export async function POST(req: NextRequest) {
 
       let user: UserProfile;
       if (isServerFirebaseConfigured) {
-        try {
-          user = await serverSignUpWithEmail(email, password, displayName);
-        } catch (signupErr: any) {
-          if (signupErr.message?.includes("EMAIL_EXISTS")) {
-            // If already registered and password matches, sign them in seamlessly!
-            try {
-              user = await serverSignInWithEmail(email, password);
-            } catch (err) {
-              return NextResponse.json(
-                { error: "An account with this email already exists. Please switch to Sign In." },
-                { status: 400 }
-              );
-            }
-          } else if (signupErr.message?.includes("WEAK_PASSWORD")) {
-            return NextResponse.json(
-              { error: "Password must be at least 6 characters." },
-              { status: 400 }
-            );
-          } else {
-            throw signupErr;
-          }
-        }
+        user = await serverSignUpWithEmail(email, password, displayName);
       } else {
         user = {
           uid: `user-${Buffer.from(email).toString("base64url").slice(0, 12)}`,
@@ -149,10 +91,29 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "google") {
+      const { idToken } = body;
+      if (!idToken) {
+        return NextResponse.json(
+          { error: "Google authentication token is required" },
+          { status: 400 }
+        );
+      }
+
+      if (!isServerFirebaseConfigured) {
+        return NextResponse.json(
+          { error: "Server is not configured for Google sign-in" },
+          { status: 500 }
+        );
+      }
+
+      // Verify the Google ID token server-side — never trust client-supplied identity
+      const verified = await serverVerifyIdToken(idToken);
+
       const googleUser: UserProfile = {
-        uid: "user-google-" + Date.now().toString(36),
-        email: "competitor@gmail.com",
-        displayName: "Competitor",
+        uid: verified.uid,
+        email: verified.email,
+        displayName: verified.displayName,
+        photoURL: verified.photoURL,
         role: "competitor",
       };
       await setSessionCookie(googleUser);
@@ -170,7 +131,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Email is required" }, { status: 400 });
       }
       if (isServerFirebaseConfigured) {
-        await serverSendPasswordReset(email);
+        await serverSendPasswordReset(email.trim().toLowerCase());
       }
       return NextResponse.json({ ok: true });
     }
@@ -185,6 +146,7 @@ export async function POST(req: NextRequest) {
         ...currentUser,
         displayName: body.displayName?.trim() || currentUser.displayName,
         preferredCurrency: body.preferredCurrency || currentUser.preferredCurrency,
+        photoURL: body.photoURL !== undefined ? body.photoURL : currentUser.photoURL,
       };
 
       await setSessionCookie(updatedUser);
@@ -194,12 +156,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (err: any) {
     let msg = err.message || "Authentication error";
-    if (msg.includes("EMAIL_NOT_FOUND") || msg.includes("INVALID_PASSWORD") || msg.includes("INVALID_LOGIN_CREDENTIALS")) {
+    if (
+      msg.includes("EMAIL_NOT_FOUND") ||
+      msg.includes("INVALID_PASSWORD") ||
+      msg.includes("INVALID_LOGIN_CREDENTIALS")
+    ) {
       msg = "Invalid email or password.";
     } else if (msg.includes("EMAIL_EXISTS")) {
-      msg = "Account already exists with this email.";
+      msg = "An account already exists with this email.";
     } else if (msg.includes("WEAK_PASSWORD")) {
-      msg = "Password should be at least 6 characters.";
+      msg = "Password must be at least 6 characters.";
+    } else if (msg.includes("INVALID_EMAIL")) {
+      msg = "Please enter a valid email address.";
+    } else if (msg.includes("TOO_MANY_ATTEMPTS")) {
+      msg = "Too many attempts. Please wait a few moments and try again.";
+    } else if (msg.includes("USER_DISABLED")) {
+      msg = "This account has been disabled.";
+    } else if (msg.includes("OPERATION_NOT_ALLOWED")) {
+      msg = "Email sign-in is not enabled.";
     }
     return NextResponse.json({ error: msg }, { status: 400 });
   }

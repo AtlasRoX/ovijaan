@@ -37,8 +37,10 @@ interface AppState {
 
   // User & Auth Actions
   setUser: (user: UserProfile | null) => void;
+  logout: () => Promise<void>;
   setAuthLoading: (loading: boolean) => void;
   setTheme: (theme: "light" | "dark" | "system") => void;
+  initTheme: () => void;
   syncFromFirestore: (userId: string) => Promise<void>;
   clearAllUserData: () => void;
 
@@ -99,7 +101,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       user: null,
       authLoading: false,
-      theme: "dark",
+      theme: "light",
 
       // Clean empty state with zero seeded / synthetic data
       competitions: [],
@@ -114,9 +116,41 @@ export const useAppStore = create<AppState>()(
       activityLogs: [],
 
       setUser: (user) => {
+        const prevUid = get().user?.uid;
+        if (user && prevUid && user.uid !== prevUid) {
+          get().clearAllUserData();
+        }
+
         set({ user, authLoading: false });
+
+        if (typeof window !== "undefined") {
+          try {
+            if (user) {
+              localStorage.setItem("obhijaan_user_session", JSON.stringify(user));
+            } else {
+              localStorage.removeItem("obhijaan_user_session");
+            }
+          } catch (e) {}
+        }
+
         if (user?.uid) {
           get().syncFromFirestore(user.uid);
+        }
+      },
+
+      logout: async () => {
+        set({ authLoading: true });
+        try {
+          await apiClient.auth.logout();
+        } catch (e) {}
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.removeItem("obhijaan_user_session");
+          } catch (e) {}
+        }
+        set({ user: null, authLoading: false });
+        if (typeof window !== "undefined") {
+          window.location.href = "/";
         }
       },
 
@@ -124,6 +158,18 @@ export const useAppStore = create<AppState>()(
 
       setTheme: (theme) => {
         set({ theme });
+        if (typeof document !== "undefined") {
+          const root = document.documentElement;
+          if (theme === "dark") {
+            root.classList.add("dark");
+          } else {
+            root.classList.remove("dark");
+          }
+        }
+      },
+
+      initTheme: () => {
+        const theme = get().theme;
         if (typeof document !== "undefined") {
           const root = document.documentElement;
           if (theme === "dark") {

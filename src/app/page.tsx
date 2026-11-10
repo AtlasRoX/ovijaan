@@ -14,7 +14,7 @@ import {
   ExternalLink,
   Calendar as CalendarIcon,
   CheckCircle2,
-  Sparkles,
+  PartyPopper,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import {
@@ -174,7 +174,7 @@ export default function DashboardPage() {
             onClick={handleCelebrate}
             className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3.5 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition"
           >
-            <Sparkles className="h-4 w-4" />
+            <PartyPopper className="h-4 w-4" />
             <span>Celebrate Wins</span>
           </button>
         </div>

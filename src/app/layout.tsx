@@ -33,8 +33,14 @@ export default async function RootLayout({
   const sessionUser = await getSessionUser();
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* No-FOUC: apply persisted theme before paint. Defaults to light. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('obhijaan_production_vault_v2');if(s){var p=JSON.parse(s);if(p&&p.state&&p.state.theme==='dark'){document.documentElement.classList.add('dark');}}}catch(e){}})();`,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
