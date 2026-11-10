@@ -15,6 +15,8 @@ import {
   CheckSquare,
   CheckCircle2,
   Plus,
+  Edit3,
+  X,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { getStatusBadgeClass } from "@/lib/utils";
@@ -47,6 +49,42 @@ export default function ProjectDetailPage({
 
   // Quick task state
   const [newTaskTitle, setNewTaskTitle] = useState("");
+
+  // Edit Project Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState(project?.name || "");
+  const [editTagline, setEditTagline] = useState(project?.tagline || "");
+  const [editProblem, setEditProblem] = useState(project?.problemStatement || "");
+  const [editSolution, setEditSolution] = useState(project?.proposedSolution || "");
+  const [editStack, setEditStack] = useState(project?.techStack?.join(", ") || "");
+  const [editRepo, setEditRepo] = useState(project?.links?.repoUrl || "");
+  const [editLive, setEditLive] = useState(project?.links?.liveUrl || "");
+  const [editVideo, setEditVideo] = useState(project?.links?.videoUrl || "");
+  const [editDocs, setEditDocs] = useState(project?.links?.docsUrl || "");
+  const [editArch, setEditArch] = useState(project?.architectureNotes || "");
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editName.trim() || !project) return;
+
+    updateProject(project.id, {
+      name: editName.trim(),
+      tagline: editTagline.trim() || undefined,
+      problemStatement: editProblem.trim() || undefined,
+      proposedSolution: editSolution.trim() || undefined,
+      techStack: editStack ? editStack.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      architectureNotes: editArch.trim() || undefined,
+      links: {
+        ...project.links,
+        repoUrl: editRepo.trim() || undefined,
+        liveUrl: editLive.trim() || undefined,
+        videoUrl: editVideo.trim() || undefined,
+        docsUrl: editDocs.trim() || undefined,
+      },
+    });
+
+    setShowEditModal(false);
+  };
 
   if (!project) {
     return (
@@ -110,6 +148,13 @@ export default function ProjectDetailPage({
         </Link>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowEditModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition"
+          >
+            <Edit3 className="h-3.5 w-3.5 text-primary-500" />
+            <span>Edit</span>
+          </button>
           {project.links?.repoUrl && (
             <a
               href={project.links.repoUrl}
@@ -421,6 +466,157 @@ export default function ProjectDetailPage({
           </div>
         )}
       </div>
+
+      {/* Edit Project Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+            onClick={() => setShowEditModal(false)}
+          />
+          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl animate-fade-in">
+            <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
+              <h3 className="text-base font-bold text-foreground">Edit Project Details</h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-foreground">Project Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm focus:border-primary-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground">Tagline</label>
+                <input
+                  type="text"
+                  value={editTagline}
+                  onChange={(e) => setEditTagline(e.target.value)}
+                  placeholder="One-line elevator pitch"
+                  className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground">Problem Statement</label>
+                <textarea
+                  rows={2}
+                  value={editProblem}
+                  onChange={(e) => setEditProblem(e.target.value)}
+                  placeholder="What friction or customer problem are you solving?"
+                  className="mt-1 w-full rounded-xl border border-input bg-background p-2.5 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground">Proposed Solution</label>
+                <textarea
+                  rows={2}
+                  value={editSolution}
+                  onChange={(e) => setEditSolution(e.target.value)}
+                  placeholder="How does your application address this problem?"
+                  className="mt-1 w-full rounded-xl border border-input bg-background p-2.5 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground">Tech Stack (comma separated)</label>
+                <input
+                  type="text"
+                  value={editStack}
+                  onChange={(e) => setEditStack(e.target.value)}
+                  placeholder="Next.js 15, TypeScript, Tailwind CSS, Firebase"
+                  className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-foreground">Repository URL</label>
+                  <input
+                    type="url"
+                    value={editRepo}
+                    onChange={(e) => setEditRepo(e.target.value)}
+                    placeholder="https://github.com/..."
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground">Live Deployment URL</label>
+                  <input
+                    type="url"
+                    value={editLive}
+                    onChange={(e) => setEditLive(e.target.value)}
+                    placeholder="https://...vercel.app"
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-foreground">Demo Video URL</label>
+                  <input
+                    type="url"
+                    value={editVideo}
+                    onChange={(e) => setEditVideo(e.target.value)}
+                    placeholder="Loom or YouTube URL"
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground">Documentation / Deck URL</label>
+                  <input
+                    type="url"
+                    value={editDocs}
+                    onChange={(e) => setEditDocs(e.target.value)}
+                    placeholder="Google Slides / Pitch Deck link"
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground">Architecture Notes</label>
+                <textarea
+                  rows={2}
+                  value={editArch}
+                  onChange={(e) => setEditArch(e.target.value)}
+                  placeholder="SSR, PWA offline caching, Firestore rules..."
+                  className="mt-1 w-full rounded-xl border border-input bg-background p-2.5 text-xs font-mono"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="rounded-xl border border-border px-3.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-primary-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-primary-700"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

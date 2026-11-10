@@ -1,7 +1,35 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth, Auth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
-import { getStorage, FirebaseStorage } from "firebase/storage";
+import {
+  getAuth,
+  Auth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser,
+} from "firebase/auth";
+import {
+  getFirestore,
+  Firestore,
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+  deleteDoc,
+} from "firebase/firestore";
+import {
+  getStorage,
+  FirebaseStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
@@ -18,23 +46,91 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey !== "your_api_key_here"
 );
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
-let storage: FirebaseStorage | null = null;
-
-if (typeof window !== "undefined") {
-  if (isFirebaseConfigured) {
-    try {
-      app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-      auth = getAuth(app);
-      db = getFirestore(app);
-      storage = getStorage(app);
-    } catch (err) {
-      console.warn("Firebase initialization skipped or failed:", err);
-    }
+function getFirebaseApp(): FirebaseApp | null {
+  if (typeof window === "undefined") return null;
+  if (!isFirebaseConfigured) return null;
+  try {
+    return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  } catch (err) {
+    console.warn("Failed to get Firebase App:", err);
+    return null;
   }
 }
 
+export function getFirebaseAuth(): Auth | null {
+  const app = getFirebaseApp();
+  return app ? getAuth(app) : null;
+}
+
+export function getFirebaseDb(): Firestore | null {
+  const app = getFirebaseApp();
+  return app ? getFirestore(app) : null;
+}
+
+export function getFirebaseStorage(): FirebaseStorage | null {
+  const app = getFirebaseApp();
+  return app ? getStorage(app) : null;
+}
+
 export const googleProvider = new GoogleAuthProvider();
-export { app, auth, db, storage };
+
+// Auth Helpers
+export async function signInGoogle() {
+  const auth = getFirebaseAuth();
+  if (!auth) throw new Error("Firebase Auth not initialized");
+  return signInWithPopup(auth, googleProvider);
+}
+
+export async function loginWithEmail(email: string, pass: string) {
+  const auth = getFirebaseAuth();
+  if (!auth) throw new Error("Firebase Auth not initialized");
+  return signInWithEmailAndPassword(auth, email, pass);
+}
+
+export async function registerWithEmail(email: string, pass: string) {
+  const auth = getFirebaseAuth();
+  if (!auth) throw new Error("Firebase Auth not initialized");
+  return createUserWithEmailAndPassword(auth, email, pass);
+}
+
+export async function logoutUser() {
+  const auth = getFirebaseAuth();
+  if (auth) return signOut(auth);
+}
+
+// Storage Helper
+export async function uploadFileToFirebase(
+  file: File,
+  folder: string = "uploads",
+  onProgress?: (percent: number) => void
+): Promise<{ url: string; name: string; size: number; type: string }> {
+  const storage = getFirebaseStorage();
+  if (!storage) {
+    throw new Error("Firebase Storage is not initialized.");
+  }
+
+  const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const filePath = `${folder}/${Date.now()}_${cleanName}`;
+  const storageRef = ref(storage, filePath);
+  const uploadTask = uploadBytesResumable(storageRef, file);
+
+  return new Promise((resolve, reject) => {
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        if (onProgress) onProgress(Math.round(progress));
+      },
+      (error) => reject(error),
+      async () => {
+        const url = await getDownloadURL(uploadTask.snapshot.ref);
+        resolve({
+          url,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        });
+      }
+    );
+  });
+}

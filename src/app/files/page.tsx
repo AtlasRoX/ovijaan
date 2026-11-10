@@ -15,6 +15,7 @@ import {
 import { useAppStore } from "@/lib/store";
 import { formatDate } from "@/lib/utils";
 import { FileCategory } from "@/types";
+import { uploadFileToFirebase, isFirebaseConfigured } from "@/lib/firebase";
 
 export default function FilesPage() {
   const { files, deleteFile, addFile, competitions, projects } = useAppStore();
@@ -22,28 +23,65 @@ export default function FilesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
 
   // New file form
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [fileName, setFileName] = useState("");
   const [fileCat, setFileCat] = useState<FileCategory>("Certificate");
   const [fileCompId, setFileCompId] = useState("");
   const [fileProjId, setFileProjId] = useState("");
   const [fileUrl, setFileUrl] = useState("");
 
-  const handleAddFile = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedFile(file);
+    if (!fileName) setFileName(file.name);
+  };
+
+  const handleAddFile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fileName.trim()) return;
+
+    let finalUrl = fileUrl.trim() || "/logo.png";
+    let fileSize = 154000;
+    let fileType = "application/pdf";
+
+    if (selectedFile) {
+      fileSize = selectedFile.size;
+      fileType = selectedFile.type;
+
+      if (isFirebaseConfigured) {
+        try {
+          setUploadProgress(10);
+          const uploadRes = await uploadFileToFirebase(
+            selectedFile,
+            `vault/${fileCat.toLowerCase()}`,
+            (p) => setUploadProgress(p)
+          );
+          finalUrl = uploadRes.url;
+        } catch (err: any) {
+          console.warn("Firebase upload failed, saving locally:", err);
+          setUploadError("Could not upload to Firebase bucket. Saving locally.");
+        } finally {
+          setUploadProgress(null);
+        }
+      }
+    }
 
     addFile({
       name: fileName.trim(),
       category: fileCat,
-      size: 154000,
-      type: "application/pdf",
-      url: fileUrl.trim() || "/logo.png",
+      size: fileSize,
+      type: fileType,
+      url: finalUrl,
       relatedCompetitionId: fileCompId || undefined,
       relatedProjectId: fileProjId || undefined,
     });
 
     setFileName("");
     setFileUrl("");
+    setSelectedFile(null);
     setShowAddModal(false);
   };
 
@@ -158,12 +196,35 @@ export default function FilesPage() {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-foreground">File URL / Storage Link</label>
+            <label className="text-xs font-medium text-foreground">Select File from Device</label>
+            <input
+              type="file"
+              onChange={handleFileChange}
+              className="mt-1 block w-full text-xs text-muted-foreground file:mr-3 file:rounded-xl file:border file:border-border file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-semibold hover:file:bg-card"
+            />
+            {uploadProgress !== null && (
+              <div className="mt-2 space-y-1">
+                <div className="flex justify-between text-[11px] font-semibold text-primary-500">
+                  <span>Uploading to Firebase Storage...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary-600 transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-foreground">Or External File / Asset URL</label>
             <input
               type="text"
               value={fileUrl}
               onChange={(e) => setFileUrl(e.target.value)}
-              placeholder="https://... or /logo.png"
+              placeholder="https://... or leave blank if file picked above"
               className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm focus:border-primary-500 focus:outline-none"
             />
           </div>

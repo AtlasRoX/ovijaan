@@ -11,9 +11,14 @@ import {
   Clock,
   Sparkles,
   Command,
+  LogOut,
+  User,
+  LogIn,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { getRelativeDeadline } from "@/lib/utils";
+import { AuthModal } from "./AuthModal";
+import { logoutUser } from "@/lib/firebase";
 
 interface HeaderProps {
   onOpenMobileSidebar: () => void;
@@ -22,9 +27,11 @@ interface HeaderProps {
 
 export function Header({ onOpenMobileSidebar, onOpenQuickAdd }: HeaderProps) {
   const router = useRouter();
-  const { theme, setTheme, competitions, tasks, user } = useAppStore();
+  const { theme, setTheme, competitions, tasks, user, setUser } = useAppStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Compute urgent upcoming deadlines (within 7 days)
   const upcomingDeadlines = competitions
@@ -156,16 +163,75 @@ export function Header({ onOpenMobileSidebar, onOpenQuickAdd }: HeaderProps) {
           )}
         </button>
 
-        {/* User Badge */}
-        <div className="flex items-center gap-2 pl-2 border-l border-border">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-400 text-xs font-bold text-white shadow-sm">
-            {user?.displayName ? user.displayName.charAt(0).toUpperCase() : "O"}
-          </div>
-          <span className="hidden text-xs font-medium text-foreground sm:inline-block max-w-[100px] truncate">
-            {user?.displayName || "Obhijaan User"}
-          </span>
+        {/* User Badge & Menu */}
+        <div className="relative pl-2 border-l border-border">
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center gap-2 rounded-xl p-1 hover:bg-muted transition"
+            aria-label="User profile menu"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-400 text-xs font-bold text-white shadow-sm overflow-hidden">
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="" className="h-full w-full object-cover" />
+              ) : user?.displayName ? (
+                user.displayName.charAt(0).toUpperCase()
+              ) : (
+                "O"
+              )}
+            </div>
+            <span className="hidden text-xs font-medium text-foreground sm:inline-block max-w-[100px] truncate">
+              {user?.displayName || "Competitor"}
+            </span>
+          </button>
+
+          {showUserMenu && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowUserMenu(false)}
+              />
+              <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl border border-border bg-card p-2 shadow-xl animate-fade-in text-xs">
+                <div className="p-2 border-b border-border mb-1">
+                  <p className="font-bold text-foreground truncate">{user?.displayName || "Guest Competitor"}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{user?.email || "Local storage"}</p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    setShowAuthModal(true);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl p-2 text-foreground hover:bg-muted transition"
+                >
+                  <LogIn className="h-3.5 w-3.5 text-primary-500" />
+                  <span>{user?.uid === "demo-user" || user?.uid === "guest-user" ? "Sign in / Sync" : "Switch Account"}</span>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    await logoutUser();
+                    setUser({
+                      uid: "guest-user",
+                      email: "guest@obhijaan.local",
+                      displayName: "Guest Competitor",
+                    });
+                    setShowUserMenu(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl p-2 text-rose-500 hover:bg-rose-500/10 transition"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </header>
   );
 }

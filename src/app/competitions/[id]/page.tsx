@@ -20,6 +20,7 @@ import {
   Plus,
   CheckCircle2,
   Sparkles,
+  X,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import {
@@ -86,6 +87,23 @@ export default function CompetitionDetailPage({
   const [resPrize, setResPrize] = useState(compResult?.prizeAmount?.toString() || "");
   const [resCurrency, setResCurrency] = useState(compResult?.prizeCurrency || "USD");
   const [resFeedback, setResFeedback] = useState(compResult?.feedback || "");
+
+  // Edit Competition Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState(comp?.name || "");
+  const [editOrganizer, setEditOrganizer] = useState(comp?.organizer || "");
+  const [editCategory, setEditCategory] = useState(comp?.category || "Hackathon");
+  const [editFormat, setEditFormat] = useState<"online" | "offline" | "hybrid">(comp?.format || "online");
+  const [editLocation, setEditLocation] = useState(comp?.location || "");
+  const [editDescription, setEditDescription] = useState(comp?.shortDescription || "");
+  const [editWebsite, setEditWebsite] = useState(comp?.websiteUrl || "");
+  const [editPrize, setEditPrize] = useState(comp?.participation?.prizePool || "");
+  const [editEligibility, setEditEligibility] = useState(comp?.participation?.eligibility || "");
+  const [editRules, setEditRules] = useState(comp?.participation?.rules || "");
+  const [editTags, setEditTags] = useState(comp?.tags?.join(", ") || "");
+  const [editNotes, setEditNotes] = useState(comp?.personalNotes || "");
+  const [editRegCloses, setEditRegCloses] = useState(comp?.dates?.registrationCloses ? comp.dates.registrationCloses.slice(0, 16) : "");
+  const [editSubDeadline, setEditSubDeadline] = useState(comp?.dates?.submissionDeadline ? comp.dates.submissionDeadline.slice(0, 16) : "");
 
   if (!comp) {
     return (
@@ -190,6 +208,36 @@ export default function CompetitionDetailPage({
     setNewTaskTitle("");
   };
 
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editName.trim()) return;
+
+    updateCompetition(comp.id, {
+      name: editName.trim(),
+      organizer: editOrganizer.trim() || undefined,
+      category: editCategory,
+      format: editFormat,
+      location: editLocation.trim() || undefined,
+      shortDescription: editDescription.trim() || undefined,
+      websiteUrl: editWebsite.trim() || undefined,
+      tags: editTags ? editTags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      personalNotes: editNotes.trim() || undefined,
+      dates: {
+        ...comp.dates,
+        registrationCloses: editRegCloses ? new Date(editRegCloses).toISOString() : comp.dates?.registrationCloses,
+        submissionDeadline: editSubDeadline ? new Date(editSubDeadline).toISOString() : comp.dates?.submissionDeadline,
+      },
+      participation: {
+        ...comp.participation,
+        prizePool: editPrize.trim() || undefined,
+        eligibility: editEligibility.trim() || undefined,
+        rules: editRules.trim() || undefined,
+      },
+    });
+
+    setShowEditModal(false);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Top Breadcrumb & Actions */}
@@ -203,6 +251,13 @@ export default function CompetitionDetailPage({
         </Link>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowEditModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition"
+          >
+            <Edit3 className="h-3.5 w-3.5 text-primary-500" />
+            <span>Edit</span>
+          </button>
           {comp.websiteUrl && (
             <a
               href={comp.websiteUrl}
@@ -795,6 +850,178 @@ export default function CompetitionDetailPage({
               Save Result
             </button>
           </form>
+        </div>
+      )}
+
+      {/* Edit Competition Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+            onClick={() => setShowEditModal(false)}
+          />
+          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl animate-fade-in">
+            <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
+              <h3 className="text-base font-bold text-foreground">Edit Competition Details</h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-foreground">Competition Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm focus:border-primary-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-foreground">Organizer</label>
+                  <input
+                    type="text"
+                    value={editOrganizer}
+                    onChange={(e) => setEditOrganizer(e.target.value)}
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm focus:border-primary-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground">Category</label>
+                  <input
+                    type="text"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm focus:border-primary-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-foreground">Event Format</label>
+                  <select
+                    value={editFormat}
+                    onChange={(e) => setEditFormat(e.target.value as any)}
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="online">Online</option>
+                    <option value="offline">Offline / In-person</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground">Location / Venue</label>
+                  <input
+                    type="text"
+                    value={editLocation}
+                    onChange={(e) => setEditLocation(e.target.value)}
+                    placeholder="e.g. San Francisco, CA or Online"
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground">Official Website URL</label>
+                <input
+                  type="url"
+                  value={editWebsite}
+                  onChange={(e) => setEditWebsite(e.target.value)}
+                  placeholder="https://..."
+                  className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground">Short Description</label>
+                <textarea
+                  rows={2}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-input bg-background p-2.5 text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-foreground">Registration Closes</label>
+                  <input
+                    type="datetime-local"
+                    value={editRegCloses}
+                    onChange={(e) => setEditRegCloses(e.target.value)}
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground">Final Submission Deadline</label>
+                  <input
+                    type="datetime-local"
+                    value={editSubDeadline}
+                    onChange={(e) => setEditSubDeadline(e.target.value)}
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-foreground">Prize Pool</label>
+                  <input
+                    type="text"
+                    value={editPrize}
+                    onChange={(e) => setEditPrize(e.target.value)}
+                    placeholder="e.g. $50,000 in cash & prizes"
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground">Tags (comma separated)</label>
+                  <input
+                    type="text"
+                    value={editTags}
+                    onChange={(e) => setEditTags(e.target.value)}
+                    placeholder="AI, FullStack, OpenSource"
+                    className="mt-1 h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground">Personal Notes</label>
+                <textarea
+                  rows={2}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="Key observations, team reminders..."
+                  className="mt-1 w-full rounded-xl border border-input bg-background p-2.5 text-xs"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="rounded-xl border border-border px-3.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-primary-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-primary-700"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
