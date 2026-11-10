@@ -125,7 +125,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile, onOpenQuickAdd }: S
         {/* Brand Header */}
         <div className="flex h-13 items-center justify-between border-b border-border px-3.5 py-2.5">
           <Link href="/" className="flex items-center gap-2">
-            <div className="relative h-7 w-24 overflow-hidden rounded">
+            <div className="relative h-8 w-28 overflow-hidden rounded">
               <Image
                 src="/logo.png"
                 alt="OBHIJAAN"

@@ -132,7 +132,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <div className="relative h-9 w-28 animate-pulse">
+        <div className="relative h-11 w-44 animate-pulse">
           <Image
             src="/logo.png"
             alt="OBHIJAAN"
@@ -157,7 +157,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center py-8 px-4 animate-fade-in">
       <div className="w-full max-w-[340px] text-center">
         {/* Compact Logo */}
-        <div className="relative mx-auto h-8 w-28">
+        <div className="relative mx-auto h-11 w-44">
           <Image
             src="/logo.png"
             alt="OBHIJAAN"
