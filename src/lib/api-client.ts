@@ -61,6 +61,19 @@ export const apiClient = {
       return data.user;
     },
 
+    async googleLogin(): Promise<UserProfile> {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "google" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Google sign-in failed");
+      }
+      return data.user;
+    },
+
     async logout(): Promise<void> {
       try {
         await fetch("/api/auth", {

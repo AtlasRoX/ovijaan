@@ -89,6 +89,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ user: guestUser });
     }
 
+    if (action === "google") {
+      const googleUser: UserProfile = {
+        uid: "user-google-" + Date.now().toString(36),
+        email: "competitor@gmail.com",
+        displayName: "Competitor",
+        role: "competitor",
+      };
+      await setSessionCookie(googleUser);
+      return NextResponse.json({ user: googleUser });
+    }
+
     if (action === "logout") {
       await clearSessionCookie();
       return NextResponse.json({ ok: true });

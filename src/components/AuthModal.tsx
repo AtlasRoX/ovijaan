@@ -43,8 +43,18 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
-  const handleGoogleAuth = () => {
-    setError("Server security mode active: client keys are isolated. Please use email and password.");
+  const handleGoogleAuth = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const user = await apiClient.auth.googleLogin();
+      setUser(user);
+      onClose();
+    } catch (err: any) {
+      setError(err.message || "Google sign-in failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGuestMode = async () => {
@@ -72,7 +82,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl animate-fade-in">
+      <div className="relative w-full max-w-[390px] rounded-2xl border border-border/80 bg-card/95 backdrop-blur-xl p-5 sm:p-6 shadow-2xl animate-fade-in">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -83,7 +93,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         {/* Brand */}
         <div className="text-center">
-          <div className="relative mx-auto h-10 w-32">
+          <div className="relative mx-auto h-12 w-48">
             <Image
               src="/logo.png"
               alt="OBHIJAAN"
