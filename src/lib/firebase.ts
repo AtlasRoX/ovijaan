@@ -6,6 +6,8 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
   signOut,
   onAuthStateChanged,
   User as FirebaseUser,
@@ -93,9 +95,65 @@ export async function registerWithEmail(email: string, pass: string) {
   return createUserWithEmailAndPassword(auth, email, pass);
 }
 
+export async function sendPasswordReset(email: string) {
+  const auth = getFirebaseAuth();
+  if (!auth) throw new Error("Firebase Auth not initialized");
+  return sendPasswordResetEmail(auth, email);
+}
+
+export async function updateUserProfile(displayName: string, photoURL?: string) {
+  const auth = getFirebaseAuth();
+  if (!auth || !auth.currentUser) return;
+  return updateProfile(auth.currentUser, {
+    displayName,
+    ...(photoURL ? { photoURL } : {}),
+  });
+}
+
 export async function logoutUser() {
   const auth = getFirebaseAuth();
   if (auth) return signOut(auth);
+}
+
+// Cloud Firestore Sync Helpers
+export async function saveDocToFirestore(collName: string, id: string, data: any) {
+  const db = getFirebaseDb();
+  if (!db) return;
+  try {
+    const docRef = doc(db, collName, id);
+    await setDoc(docRef, data, { merge: true });
+  } catch (err) {
+    console.warn(`Firestore save to ${collName}/${id} error:`, err);
+  }
+}
+
+export async function deleteDocFromFirestore(collName: string, id: string) {
+  const db = getFirebaseDb();
+  if (!db) return;
+  try {
+    const docRef = doc(db, collName, id);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.warn(`Firestore delete ${collName}/${id} error:`, err);
+  }
+}
+
+export async function fetchUserDocsFromFirestore<T>(collName: string, userId: string): Promise<T[]> {
+  const db = getFirebaseDb();
+  if (!db || !userId) return [];
+  try {
+    const collRef = collection(db, collName);
+    const q = query(collRef, where("userId", "==", userId));
+    const snapshot = await getDocs(q);
+    const results: T[] = [];
+    snapshot.forEach((docSnap) => {
+      results.push(docSnap.data() as T);
+    });
+    return results;
+  } catch (err) {
+    console.warn(`Firestore fetch from ${collName} error:`, err);
+    return [];
+  }
 }
 
 // Storage Helper

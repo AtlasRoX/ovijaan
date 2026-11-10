@@ -96,8 +96,17 @@ export default function AchievementsPage() {
       </div>
 
       {/* Results List */}
-      <div className="space-y-4">
-        {results.map((res) => {
+      {results.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+          <Award className="mx-auto h-12 w-12 text-muted-foreground/40" />
+          <h3 className="mt-4 text-base font-bold text-foreground">No results recorded yet</h3>
+          <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
+            When you complete a hackathon or receive results, record your ranking, prize, or certificate inside the competition page.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {results.map((res) => {
           const comp = competitions.find((c) => c.id === res.competitionId);
 
           return (
@@ -168,7 +177,8 @@ export default function AchievementsPage() {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

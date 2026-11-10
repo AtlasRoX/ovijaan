@@ -248,8 +248,17 @@ export default function FilesPage() {
       )}
 
       {/* Files Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredFiles.map((file) => {
+      {filteredFiles.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+          <FolderOpen className="mx-auto h-12 w-12 text-muted-foreground/40" />
+          <h3 className="mt-4 text-base font-bold text-foreground">No files in your vault</h3>
+          <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
+            Upload certificates, slide decks, and registration proofs directly from your device.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredFiles.map((file) => {
           const comp = competitions.find((c) => c.id === file.relatedCompetitionId);
           const proj = projects.find((p) => p.id === file.relatedProjectId);
 
@@ -307,7 +316,8 @@ export default function FilesPage() {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

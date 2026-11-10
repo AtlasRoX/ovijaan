@@ -25,7 +25,7 @@ export default function SettingsPage() {
     exportJSON,
     importJSON,
     exportCSV,
-    resetToSampleData,
+    clearAllUserData,
   } = useAppStore();
 
   const [displayName, setDisplayName] = useState(user?.displayName || "");
@@ -82,10 +82,10 @@ export default function SettingsPage() {
     reader.readAsText(file);
   };
 
-  const handleResetData = () => {
-    if (confirm("Reset workspace to initial sample competitions and projects?")) {
-      resetToSampleData();
-      alert("Sample data restored!");
+  const handleClearAllData = () => {
+    if (confirm("Are you sure? This will permanently delete all your competitions, projects, tasks, and achievements.")) {
+      clearAllUserData();
+      alert("All records have been cleared.");
     }
   };
 
@@ -252,19 +252,19 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Danger / Reset Area */}
+      {/* Danger / Clear Area */}
       <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold text-foreground">Reset Sample Data</h3>
+          <h3 className="text-sm font-bold text-foreground">Clear All Workspace Data</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Reset workspace to initial sample competitions, projects, and achievements.
+            Permanently delete all your competitions, projects, tasks, and files.
           </p>
         </div>
         <button
-          onClick={handleResetData}
+          onClick={handleClearAllData}
           className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition"
         >
-          Reset to Sample
+          Clear All Records
         </button>
       </div>
     </div>

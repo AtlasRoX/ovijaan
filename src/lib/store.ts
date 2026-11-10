@@ -16,25 +16,18 @@ import {
   UserProfile,
 } from "@/types";
 import {
-  SEED_COMPETITIONS,
-  SEED_PROJECTS,
-  SEED_LINKS,
-  SEED_SUBMISSIONS,
-  SEED_TASKS,
-  SEED_TEAMMATES,
-  SEED_TEAMS,
-  SEED_RESULTS,
-  SEED_FILES,
-  SEED_ACTIVITY,
-} from "./seedData";
+  saveDocToFirestore,
+  deleteDocFromFirestore,
+  fetchUserDocsFromFirestore,
+} from "./firebase";
 
 interface AppState {
   // Auth & Profile
   user: UserProfile | null;
-  isFirebaseActive: boolean;
+  authLoading: boolean;
   theme: "light" | "dark" | "system";
 
-  // Data Collections
+  // Real User Data Collections (No Synthetic/Seed Data)
   competitions: Competition[];
   projects: Project[];
   competitionProjectLinks: CompetitionProjectLink[];
@@ -46,9 +39,12 @@ interface AppState {
   files: AppFile[];
   activityLogs: ActivityLog[];
 
-  // User Actions
+  // User & Auth Actions
   setUser: (user: UserProfile | null) => void;
+  setAuthLoading: (loading: boolean) => void;
   setTheme: (theme: "light" | "dark" | "system") => void;
+  syncFromFirestore: (userId: string) => Promise<void>;
+  clearAllUserData: () => void;
 
   // Competition Actions
   addCompetition: (comp: Omit<Competition, "id" | "userId" | "createdAt" | "updatedAt">) => Competition;
@@ -100,35 +96,36 @@ interface AppState {
   exportJSON: () => string;
   importJSON: (jsonData: string) => boolean;
   exportCSV: (type: "competitions" | "projects" | "tasks") => string;
-  resetToSampleData: () => void;
 }
-
-const DEFAULT_USER: UserProfile = {
-  uid: "demo-user",
-  email: "demo@obhijaan.app",
-  displayName: "Competitor & Builder",
-  preferredCurrency: "USD",
-};
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      user: DEFAULT_USER,
-      isFirebaseActive: false,
+      user: null,
+      authLoading: true,
       theme: "dark",
 
-      competitions: SEED_COMPETITIONS,
-      projects: SEED_PROJECTS,
-      competitionProjectLinks: SEED_LINKS,
-      submissions: SEED_SUBMISSIONS,
-      tasks: SEED_TASKS,
-      teammates: SEED_TEAMMATES,
-      teams: SEED_TEAMS,
-      results: SEED_RESULTS,
-      files: SEED_FILES,
-      activityLogs: SEED_ACTIVITY,
+      // Clean empty state with zero seeded / synthetic data
+      competitions: [],
+      projects: [],
+      competitionProjectLinks: [],
+      submissions: [],
+      tasks: [],
+      teammates: [],
+      teams: [],
+      results: [],
+      files: [],
+      activityLogs: [],
 
-      setUser: (user) => set({ user }),
+      setUser: (user) => {
+        set({ user, authLoading: false });
+        if (user?.uid) {
+          get().syncFromFirestore(user.uid);
+        }
+      },
+
+      setAuthLoading: (loading) => set({ authLoading: loading }),
+
       setTheme: (theme) => {
         set({ theme });
         if (typeof document !== "undefined") {
@@ -141,8 +138,64 @@ export const useAppStore = create<AppState>()(
         }
       },
 
+      syncFromFirestore: async (userId: string) => {
+        try {
+          const [
+            firestoreComps,
+            firestoreProjects,
+            firestoreLinks,
+            firestoreSubmissions,
+            firestoreTasks,
+            firestoreTeammates,
+            firestoreTeams,
+            firestoreResults,
+            firestoreFiles,
+          ] = await Promise.all([
+            fetchUserDocsFromFirestore<Competition>("competitions", userId),
+            fetchUserDocsFromFirestore<Project>("projects", userId),
+            fetchUserDocsFromFirestore<CompetitionProjectLink>("competition_projects", userId),
+            fetchUserDocsFromFirestore<Submission>("submissions", userId),
+            fetchUserDocsFromFirestore<Task>("tasks", userId),
+            fetchUserDocsFromFirestore<Teammate>("teammates", userId),
+            fetchUserDocsFromFirestore<Team>("teams", userId),
+            fetchUserDocsFromFirestore<Result>("results", userId),
+            fetchUserDocsFromFirestore<AppFile>("files", userId),
+          ]);
+
+          // If records exist on Firestore, populate them; otherwise keep clean state
+          set((state) => ({
+            competitions: firestoreComps.length > 0 ? firestoreComps : state.competitions,
+            projects: firestoreProjects.length > 0 ? firestoreProjects : state.projects,
+            competitionProjectLinks: firestoreLinks.length > 0 ? firestoreLinks : state.competitionProjectLinks,
+            submissions: firestoreSubmissions.length > 0 ? firestoreSubmissions : state.submissions,
+            tasks: firestoreTasks.length > 0 ? firestoreTasks : state.tasks,
+            teammates: firestoreTeammates.length > 0 ? firestoreTeammates : state.teammates,
+            teams: firestoreTeams.length > 0 ? firestoreTeams : state.teams,
+            results: firestoreResults.length > 0 ? firestoreResults : state.results,
+            files: firestoreFiles.length > 0 ? firestoreFiles : state.files,
+          }));
+        } catch (err) {
+          console.warn("Firestore sync error:", err);
+        }
+      },
+
+      clearAllUserData: () => {
+        set({
+          competitions: [],
+          projects: [],
+          competitionProjectLinks: [],
+          submissions: [],
+          tasks: [],
+          teammates: [],
+          teams: [],
+          results: [],
+          files: [],
+          activityLogs: [],
+        });
+      },
+
       logActivity: ({ entityType, entityId, action, description }) => {
-        const userId = get().user?.uid || "demo-user";
+        const userId = get().user?.uid || "anonymous";
         const newLog: ActivityLog = {
           id: `act-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
           userId,
@@ -158,7 +211,7 @@ export const useAppStore = create<AppState>()(
       },
 
       addCompetition: (compData) => {
-        const userId = get().user?.uid || "demo-user";
+        const userId = get().user?.uid || "anonymous";
         const id = `comp-${Date.now()}`;
         const now = new Date().toISOString();
         const newComp: Competition = {
@@ -173,6 +226,8 @@ export const useAppStore = create<AppState>()(
           competitions: [newComp, ...state.competitions],
         }));
 
+        saveDocToFirestore("competitions", id, newComp);
+
         get().logActivity({
           entityType: "competition",
           entityId: id,
@@ -185,11 +240,19 @@ export const useAppStore = create<AppState>()(
 
       updateCompetition: (id, updates) => {
         const now = new Date().toISOString();
+        let updatedRecord: Competition | null = null;
         set((state) => ({
-          competitions: state.competitions.map((c) =>
-            c.id === id ? { ...c, ...updates, updatedAt: now } : c
-          ),
+          competitions: state.competitions.map((c) => {
+            if (c.id === id) {
+              updatedRecord = { ...c, ...updates, updatedAt: now };
+              return updatedRecord;
+            }
+            return c;
+          }),
         }));
+        if (updatedRecord) {
+          saveDocToFirestore("competitions", id, updatedRecord);
+        }
         get().logActivity({
           entityType: "competition",
           entityId: id,
@@ -209,6 +272,7 @@ export const useAppStore = create<AppState>()(
           tasks: state.tasks.filter((t) => t.competitionId !== id),
           results: state.results.filter((r) => r.competitionId !== id),
         }));
+        deleteDocFromFirestore("competitions", id);
         if (comp) {
           get().logActivity({
             entityType: "competition",
@@ -220,15 +284,21 @@ export const useAppStore = create<AppState>()(
       },
 
       archiveCompetition: (id, archived) => {
+        const now = new Date().toISOString();
         set((state) => ({
-          competitions: state.competitions.map((c) =>
-            c.id === id ? { ...c, archived, updatedAt: new Date().toISOString() } : c
-          ),
+          competitions: state.competitions.map((c) => {
+            if (c.id === id) {
+              const updated = { ...c, archived, updatedAt: now };
+              saveDocToFirestore("competitions", id, updated);
+              return updated;
+            }
+            return c;
+          }),
         }));
       },
 
       addProject: (projData) => {
-        const userId = get().user?.uid || "demo-user";
+        const userId = get().user?.uid || "anonymous";
         const id = `proj-${Date.now()}`;
         const now = new Date().toISOString();
         const newProj: Project = {
@@ -243,6 +313,8 @@ export const useAppStore = create<AppState>()(
           projects: [newProj, ...state.projects],
         }));
 
+        saveDocToFirestore("projects", id, newProj);
+
         get().logActivity({
           entityType: "project",
           entityId: id,
@@ -255,11 +327,19 @@ export const useAppStore = create<AppState>()(
 
       updateProject: (id, updates) => {
         const now = new Date().toISOString();
+        let updatedRecord: Project | null = null;
         set((state) => ({
-          projects: state.projects.map((p) =>
-            p.id === id ? { ...p, ...updates, updatedAt: now } : p
-          ),
+          projects: state.projects.map((p) => {
+            if (p.id === id) {
+              updatedRecord = { ...p, ...updates, updatedAt: now };
+              return updatedRecord;
+            }
+            return p;
+          }),
         }));
+        if (updatedRecord) {
+          saveDocToFirestore("projects", id, updatedRecord);
+        }
         get().logActivity({
           entityType: "project",
           entityId: id,
@@ -282,6 +362,7 @@ export const useAppStore = create<AppState>()(
             t.projectId === id ? { ...t, projectId: undefined } : t
           ),
         }));
+        deleteDocFromFirestore("projects", id);
         if (proj) {
           get().logActivity({
             entityType: "project",
@@ -293,10 +374,20 @@ export const useAppStore = create<AppState>()(
       },
 
       archiveProject: (id, archived) => {
+        const now = new Date().toISOString();
         set((state) => ({
-          projects: state.projects.map((p) =>
-            p.id === id ? { ...p, status: archived ? "Archived" : "In Progress", updatedAt: new Date().toISOString() } : p
-          ),
+          projects: state.projects.map((p) => {
+            if (p.id === id) {
+              const updated: Project = {
+                ...p,
+                status: archived ? "Archived" : "In Progress",
+                updatedAt: now,
+              };
+              saveDocToFirestore("projects", id, updated);
+              return updated;
+            }
+            return p;
+          }),
         }));
       },
 
@@ -306,9 +397,10 @@ export const useAppStore = create<AppState>()(
         );
         if (exists) return;
 
-        const userId = get().user?.uid || "demo-user";
+        const userId = get().user?.uid || "anonymous";
+        const id = `cpl-${Date.now()}`;
         const newLink: CompetitionProjectLink = {
-          id: `cpl-${Date.now()}`,
+          id,
           userId,
           competitionId,
           projectId,
@@ -319,6 +411,8 @@ export const useAppStore = create<AppState>()(
           competitionProjectLinks: [...state.competitionProjectLinks, newLink],
         }));
 
+        saveDocToFirestore("competition_projects", id, newLink);
+
         get().logActivity({
           entityType: "competition",
           entityId: competitionId,
@@ -328,15 +422,21 @@ export const useAppStore = create<AppState>()(
       },
 
       unlinkProjectFromCompetition: (competitionId, projectId) => {
+        const link = get().competitionProjectLinks.find(
+          (l) => l.competitionId === competitionId && l.projectId === projectId
+        );
         set((state) => ({
           competitionProjectLinks: state.competitionProjectLinks.filter(
             (l) => !(l.competitionId === competitionId && l.projectId === projectId)
           ),
         }));
+        if (link) {
+          deleteDocFromFirestore("competition_projects", link.id);
+        }
       },
 
       addSubmission: (subData) => {
-        const userId = get().user?.uid || "demo-user";
+        const userId = get().user?.uid || "anonymous";
         const id = `sub-${Date.now()}`;
         const now = new Date().toISOString();
         const newSub: Submission = {
@@ -351,6 +451,8 @@ export const useAppStore = create<AppState>()(
           submissions: [newSub, ...state.submissions],
         }));
 
+        saveDocToFirestore("submissions", id, newSub);
+
         get().logActivity({
           entityType: "submission",
           entityId: id,
@@ -363,21 +465,30 @@ export const useAppStore = create<AppState>()(
 
       updateSubmission: (id, updates) => {
         const now = new Date().toISOString();
+        let updatedRecord: Submission | null = null;
         set((state) => ({
-          submissions: state.submissions.map((s) =>
-            s.id === id ? { ...s, ...updates, updatedAt: now } : s
-          ),
+          submissions: state.submissions.map((s) => {
+            if (s.id === id) {
+              updatedRecord = { ...s, ...updates, updatedAt: now };
+              return updatedRecord;
+            }
+            return s;
+          }),
         }));
+        if (updatedRecord) {
+          saveDocToFirestore("submissions", id, updatedRecord);
+        }
       },
 
       deleteSubmission: (id) => {
         set((state) => ({
           submissions: state.submissions.filter((s) => s.id !== id),
         }));
+        deleteDocFromFirestore("submissions", id);
       },
 
       addTask: (taskData) => {
-        const userId = get().user?.uid || "demo-user";
+        const userId = get().user?.uid || "anonymous";
         const id = `task-${Date.now()}`;
         const now = new Date().toISOString();
         const newTask: Task = {
@@ -392,6 +503,8 @@ export const useAppStore = create<AppState>()(
           tasks: [newTask, ...state.tasks],
         }));
 
+        saveDocToFirestore("tasks", id, newTask);
+
         get().logActivity({
           entityType: "task",
           entityId: id,
@@ -404,34 +517,48 @@ export const useAppStore = create<AppState>()(
 
       updateTask: (id, updates) => {
         const now = new Date().toISOString();
-        set((state) => ({
-          tasks: state.tasks.map((t) =>
-            t.id === id ? { ...t, ...updates, updatedAt: now } : t
-          ),
-        }));
-      },
-
-      toggleTaskDone: (id) => {
-        const now = new Date().toISOString();
+        let updatedRecord: Task | null = null;
         set((state) => ({
           tasks: state.tasks.map((t) => {
             if (t.id === id) {
-              const newStatus = t.status === "Done" ? "To Do" : "Done";
-              return { ...t, status: newStatus, updatedAt: now };
+              updatedRecord = { ...t, ...updates, updatedAt: now };
+              return updatedRecord;
             }
             return t;
           }),
         }));
+        if (updatedRecord) {
+          saveDocToFirestore("tasks", id, updatedRecord);
+        }
+      },
+
+      toggleTaskDone: (id) => {
+        const now = new Date().toISOString();
+        let updatedRecord: Task | null = null;
+        set((state) => ({
+          tasks: state.tasks.map((t) => {
+            if (t.id === id) {
+              const newStatus = t.status === "Done" ? "To Do" : "Done";
+              updatedRecord = { ...t, status: newStatus, updatedAt: now };
+              return updatedRecord;
+            }
+            return t;
+          }),
+        }));
+        if (updatedRecord) {
+          saveDocToFirestore("tasks", id, updatedRecord);
+        }
       },
 
       deleteTask: (id) => {
         set((state) => ({
           tasks: state.tasks.filter((t) => t.id !== id),
         }));
+        deleteDocFromFirestore("tasks", id);
       },
 
       addTeammate: (tmData) => {
-        const userId = get().user?.uid || "demo-user";
+        const userId = get().user?.uid || "anonymous";
         const id = `tm-${Date.now()}`;
         const newTm: Teammate = {
           ...tmData,
@@ -442,15 +569,24 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           teammates: [...state.teammates, newTm],
         }));
+        saveDocToFirestore("teammates", id, newTm);
         return newTm;
       },
 
       updateTeammate: (id, updates) => {
+        let updatedRecord: Teammate | null = null;
         set((state) => ({
-          teammates: state.teammates.map((tm) =>
-            tm.id === id ? { ...tm, ...updates } : tm
-          ),
+          teammates: state.teammates.map((tm) => {
+            if (tm.id === id) {
+              updatedRecord = { ...tm, ...updates };
+              return updatedRecord;
+            }
+            return tm;
+          }),
         }));
+        if (updatedRecord) {
+          saveDocToFirestore("teammates", id, updatedRecord);
+        }
       },
 
       deleteTeammate: (id) => {
@@ -462,10 +598,11 @@ export const useAppStore = create<AppState>()(
             leadTeammateId: team.leadTeammateId === id ? undefined : team.leadTeammateId,
           })),
         }));
+        deleteDocFromFirestore("teammates", id);
       },
 
       addTeam: (teamData) => {
-        const userId = get().user?.uid || "demo-user";
+        const userId = get().user?.uid || "anonymous";
         const id = `team-${Date.now()}`;
         const newTeam: Team = {
           ...teamData,
@@ -476,23 +613,35 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           teams: [...state.teams, newTeam],
         }));
+        saveDocToFirestore("teams", id, newTeam);
         return newTeam;
       },
 
       updateTeam: (id, updates) => {
+        let updatedRecord: Team | null = null;
         set((state) => ({
-          teams: state.teams.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+          teams: state.teams.map((t) => {
+            if (t.id === id) {
+              updatedRecord = { ...t, ...updates };
+              return updatedRecord;
+            }
+            return t;
+          }),
         }));
+        if (updatedRecord) {
+          saveDocToFirestore("teams", id, updatedRecord);
+        }
       },
 
       deleteTeam: (id) => {
         set((state) => ({
           teams: state.teams.filter((t) => t.id !== id),
         }));
+        deleteDocFromFirestore("teams", id);
       },
 
       addResult: (resData) => {
-        const userId = get().user?.uid || "demo-user";
+        const userId = get().user?.uid || "anonymous";
         const id = `res-${Date.now()}`;
         const newRes: Result = {
           ...resData,
@@ -505,6 +654,8 @@ export const useAppStore = create<AppState>()(
           results: [newRes, ...state.results],
         }));
 
+        saveDocToFirestore("results", id, newRes);
+
         get().logActivity({
           entityType: "result",
           entityId: id,
@@ -516,19 +667,30 @@ export const useAppStore = create<AppState>()(
       },
 
       updateResult: (id, updates) => {
+        let updatedRecord: Result | null = null;
         set((state) => ({
-          results: state.results.map((r) => (r.id === id ? { ...r, ...updates } : r)),
+          results: state.results.map((r) => {
+            if (r.id === id) {
+              updatedRecord = { ...r, ...updates };
+              return updatedRecord;
+            }
+            return r;
+          }),
         }));
+        if (updatedRecord) {
+          saveDocToFirestore("results", id, updatedRecord);
+        }
       },
 
       deleteResult: (id) => {
         set((state) => ({
           results: state.results.filter((r) => r.id !== id),
         }));
+        deleteDocFromFirestore("results", id);
       },
 
       addFile: (fileData) => {
-        const userId = get().user?.uid || "demo-user";
+        const userId = get().user?.uid || "anonymous";
         const id = `file-${Date.now()}`;
         const newFile: AppFile = {
           ...fileData,
@@ -539,6 +701,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           files: [newFile, ...state.files],
         }));
+        saveDocToFirestore("files", id, newFile);
         return newFile;
       },
 
@@ -546,12 +709,13 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           files: state.files.filter((f) => f.id !== id),
         }));
+        deleteDocFromFirestore("files", id);
       },
 
       exportJSON: () => {
         const state = get();
         const exportData = {
-          version: "1.0",
+          version: "2.0",
           exportDate: new Date().toISOString(),
           user: state.user,
           competitions: state.competitions,
@@ -640,24 +804,9 @@ export const useAppStore = create<AppState>()(
 
         return "";
       },
-
-      resetToSampleData: () => {
-        set({
-          competitions: SEED_COMPETITIONS,
-          projects: SEED_PROJECTS,
-          competitionProjectLinks: SEED_LINKS,
-          submissions: SEED_SUBMISSIONS,
-          tasks: SEED_TASKS,
-          teammates: SEED_TEAMMATES,
-          teams: SEED_TEAMS,
-          results: SEED_RESULTS,
-          files: SEED_FILES,
-          activityLogs: SEED_ACTIVITY,
-        });
-      },
     }),
     {
-      name: "obhijaan_storage_v1",
+      name: "obhijaan_production_vault_v2",
       storage: createJSONStorage(() => localStorage),
     }
   )

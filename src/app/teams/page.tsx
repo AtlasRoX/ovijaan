@@ -276,133 +276,153 @@ export default function TeamsPage() {
 
       {/* Tab 1: Teammates Grid */}
       {activeTab === "teammates" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {teammates.map((tm) => (
-            <div
-              key={tm.id}
-              className="rounded-2xl border border-border bg-card p-5 flex flex-col justify-between hover:border-primary-500/30 transition"
-            >
-              <div>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-500/15 font-bold text-sm text-primary-600 dark:text-primary-400">
-                      {tm.name.charAt(0)}
+        teammates.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+            <Users className="mx-auto h-12 w-12 text-muted-foreground/40" />
+            <h3 className="mt-4 text-base font-bold text-foreground">No collaborators added</h3>
+            <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
+              Save profiles of your frequent hackathon teammates, developers, and designers.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {teammates.map((tm) => (
+              <div
+                key={tm.id}
+                className="rounded-2xl border border-border bg-card p-5 flex flex-col justify-between hover:border-primary-500/30 transition"
+              >
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-500/15 font-bold text-sm text-primary-600 dark:text-primary-400">
+                        {tm.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-foreground">{tm.name}</h3>
+                        {tm.role && (
+                          <p className="text-xs text-muted-foreground">{tm.role}</p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-foreground">{tm.name}</h3>
-                      {tm.role && (
-                        <p className="text-xs text-muted-foreground">{tm.role}</p>
-                      )}
+                    <button
+                      onClick={() => deleteTeammate(tm.id)}
+                      className="p-1 text-muted-foreground hover:text-rose-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Skills */}
+                  {tm.skills && tm.skills.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                      {tm.skills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                        >
+                          {skill}
+                        </span>
+                      ))}
                     </div>
+                  )}
+                </div>
+
+                {/* Social / Contact Links */}
+                <div className="mt-5 pt-3 border-t border-border flex items-center gap-3 text-xs text-muted-foreground">
+                  {tm.email && (
+                    <a
+                      href={`mailto:${tm.email}`}
+                      className="hover:text-foreground"
+                      title={tm.email}
+                    >
+                      <Mail className="h-4 w-4" />
+                    </a>
+                  )}
+                  {tm.githubUrl && (
+                    <a
+                      href={tm.githubUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-foreground"
+                    >
+                      <Github className="h-4 w-4" />
+                    </a>
+                  )}
+                  {tm.linkedinUrl && (
+                    <a
+                      href={tm.linkedinUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-foreground"
+                    >
+                      <Linkedin className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* Tab 2: Teams Grid */}
+      {activeTab === "teams" && (
+        teams.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+            <Users className="mx-auto h-12 w-12 text-muted-foreground/40" />
+            <h3 className="mt-4 text-base font-bold text-foreground">No squads created</h3>
+            <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
+              Assemble named teams from your collaborator contacts to assign to competitions.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {teams.map((team) => (
+              <div
+                key={team.id}
+                className="rounded-2xl border border-border bg-card p-5 space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-base text-foreground">{team.name}</h3>
+                    {team.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {team.description}
+                      </p>
+                    )}
                   </div>
                   <button
-                    onClick={() => deleteTeammate(tm.id)}
+                    onClick={() => deleteTeam(team.id)}
                     className="p-1 text-muted-foreground hover:text-rose-500"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
 
-                {/* Skills */}
-                {tm.skills && tm.skills.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    {tm.skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Social / Contact Links */}
-              <div className="mt-5 pt-3 border-t border-border flex items-center gap-3 text-xs text-muted-foreground">
-                {tm.email && (
-                  <a
-                    href={`mailto:${tm.email}`}
-                    className="hover:text-foreground"
-                    title={tm.email}
-                  >
-                    <Mail className="h-4 w-4" />
-                  </a>
-                )}
-                {tm.githubUrl && (
-                  <a
-                    href={tm.githubUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-foreground"
-                  >
-                    <Github className="h-4 w-4" />
-                  </a>
-                )}
-                {tm.linkedinUrl && (
-                  <a
-                    href={tm.linkedinUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-foreground"
-                  >
-                    <Linkedin className="h-4 w-4" />
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Tab 2: Teams Grid */}
-      {activeTab === "teams" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {teams.map((team) => (
-            <div
-              key={team.id}
-              className="rounded-2xl border border-border bg-card p-5 space-y-4"
-            >
-              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-base text-foreground">{team.name}</h3>
-                  {team.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {team.description}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => deleteTeam(team.id)}
-                  className="p-1 text-muted-foreground hover:text-rose-500"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div>
-                <span className="text-xs font-semibold text-muted-foreground">
-                  Members:
-                </span>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {team.memberIds.map((mid) => {
-                    const member = teammates.find((tm) => tm.id === mid);
-                    if (!member) return null;
-                    return (
-                      <span
-                        key={member.id}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-medium"
-                      >
-                        <UserCheck className="h-3 w-3 text-primary-500" />
-                        <span>{member.name}</span>
-                      </span>
-                    );
-                  })}
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Members:
+                  </span>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {team.memberIds.map((mid) => {
+                      const member = teammates.find((tm) => tm.id === mid);
+                      if (!member) return null;
+                      return (
+                        <span
+                          key={member.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-medium"
+                        >
+                          <UserCheck className="h-3 w-3 text-primary-500" />
+                          <span>{member.name}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );
