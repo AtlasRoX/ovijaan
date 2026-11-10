@@ -1,0 +1,18 @@
+{
+  "name": "OBHIJAAN - Competition & Project Dashboard",
+  "short_name": "OBHIJAAN",
+  "description": "Personal Competition & Project Management Workspace",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

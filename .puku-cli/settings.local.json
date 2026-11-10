@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(git --version)",
+      "Bash(npx --version)",
+      "Bash(npm view:*)",
+      "WebFetch(domain:firebase.google.com)",
+      "WebSearch",
+      "WebFetch(domain:docs.cloud.google.com)",
+      "Read(//tmp/**)",
+      "Bash(node -e \":*)"
+    ]
+  }
+}
