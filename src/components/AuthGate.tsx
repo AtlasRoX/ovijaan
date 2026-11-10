@@ -117,8 +117,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative min-h-screen w-full bg-background text-foreground flex items-center justify-center p-4 sm:p-6 overflow-hidden select-none">
       {/* Ambient backdrop glow */}
-      <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-[380px] w-[600px] rounded-full bg-gradient-to-b from-primary-500/15 via-primary-500/5 to-transparent blur-[120px]" />
-      <div className="pointer-events-none absolute -bottom-32 left-1/2 -translate-x-1/2 h-[340px] w-[500px] rounded-full bg-indigo-500/10 blur-[120px]" />
+      <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-[350px] w-[550px] rounded-full bg-primary-500/10 blur-[130px]" />
 
       <div className="relative w-full max-w-[390px] mx-auto z-10 animate-fade-in space-y-4">
         {/* Brand Header */}
@@ -204,7 +203,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={submitting}
-                className="flex h-9.5 w-full items-center justify-center gap-2.5 rounded-xl border border-border/80 bg-background/60 hover:bg-muted/80 text-xs font-semibold text-foreground transition disabled:opacity-50 hover:border-border active:scale-[0.99]"
+                className="flex h-10 w-full items-center justify-center gap-2.5 rounded-xl border border-border/80 bg-background/60 hover:bg-muted/80 text-xs font-semibold text-foreground transition disabled:opacity-50 hover:border-border active:scale-[0.99]"
               >
                 <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
                   <path
@@ -232,7 +231,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                   <span className="w-full border-t border-border/60" />
                 </div>
                 <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-semibold">
-                  <span className="bg-card px-2 text-muted-foreground/80">or with email</span>
+                  <span className="bg-card px-2.5 text-muted-foreground/80">or with email</span>
                 </div>
               </div>
             </div>
@@ -244,14 +243,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               <div>
                 <label className="text-xs font-medium text-foreground block mb-1">Your Name</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
                     type="text"
                     required
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Full name"
-                    className="h-9 w-full rounded-xl border border-input bg-background/70 pl-8.5 pr-3 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition"
+                    className="h-10 w-full rounded-xl border border-input bg-background/70 pl-10 pr-3.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition"
                   />
                 </div>
               </div>
@@ -260,14 +259,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <div>
               <label className="text-xs font-medium text-foreground block mb-1">Email Address</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="h-9 w-full rounded-xl border border-input bg-background/70 pl-8.5 pr-3 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition"
+                  className="h-10 w-full rounded-xl border border-input bg-background/70 pl-10 pr-3.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition"
                 />
               </div>
             </div>
@@ -291,7 +290,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
                     type="password"
                     required
@@ -299,7 +298,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="h-9 w-full rounded-xl border border-input bg-background/70 pl-8.5 pr-3 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition"
+                    className="h-10 w-full rounded-xl border border-input bg-background/70 pl-10 pr-3.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition"
                   />
                 </div>
               </div>
@@ -308,7 +307,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <button
               type="submit"
               disabled={submitting}
-              className="h-9.5 w-full rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold shadow-md shadow-primary-600/20 active:scale-[0.99] transition duration-150 disabled:opacity-50 flex items-center justify-center gap-1.5 mt-2"
+              className="h-10 w-full rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold shadow-md shadow-primary-600/20 active:scale-[0.99] transition duration-150 disabled:opacity-50 flex items-center justify-center gap-1.5 mt-2"
             >
               {submitting
                 ? "Processing..."

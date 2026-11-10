@@ -161,14 +161,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <div>
             <label className="text-xs font-medium text-foreground">Email</label>
             <div className="relative mt-1">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@domain.com"
-                className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm focus:border-primary-500 focus:outline-none"
+                className="h-10 w-full rounded-xl border border-input bg-background pl-10 pr-3.5 text-xs focus:border-primary-500 focus:outline-none"
               />
             </div>
           </div>
@@ -176,7 +176,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <div>
             <label className="text-xs font-medium text-foreground">Password</label>
             <div className="relative mt-1">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
                 type="password"
                 required
@@ -184,7 +184,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm focus:border-primary-500 focus:outline-none"
+                className="h-10 w-full rounded-xl border border-input bg-background pl-10 pr-3.5 text-xs focus:border-primary-500 focus:outline-none"
               />
             </div>
           </div>
